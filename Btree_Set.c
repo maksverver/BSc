@@ -225,8 +225,6 @@ static struct PageEntry *insert_entry( Btree_Set *set,
         int n, k;
         char *new_page;
 
-        printf("Splitting...\n");
-
         /* For now, just split in the middle.
            This works because we require all keys to be less than 1/4th of a
            page (minus the required index size) so no matter how we split, we
@@ -274,26 +272,34 @@ static struct PageEntry *find_or_insert_page( Btree_Set *set, int pageno,
     const void *key_data, size_t key_size, bool *found )
 {
     char *page;
-    int N, n, child;
+    int N, n, m, child;
     struct PageEntry *entry;
 
     page = read_page(set, pageno);
-
     N = COUNT(page);
-    /* TODO: make this a binary search */
-    for (n = 0; n < N; ++n)
+
+    /* Binary search for first element larger than key. */
+    n = 0;
+    m = N;
+    while (n < m)
     {
-        int i = BEGIN(page, n), j = END(page, n);
-        int d = cmp(page + i, j - i, key_data, key_size);
-        if (d == 0)
+        int d, mid;
+
+        mid = (n + m)/2;
+        d = cmp(page + BEGIN(page, mid), SIZE(page, mid), key_data, key_size);
+
+        if (d < 0)
+            n = mid + 1;
+        else
+        if (d > 0)
+            m = mid;
+        else
         {
             /* Entry found! */
             *found = true;
             free(page);
             return NULL;
         }
-        if (d > 0)
-            break;
     }
 
     /* Entry was not found in the current page.
