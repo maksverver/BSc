@@ -43,12 +43,12 @@ static bool set_contains(BDB_Set *set, const void *key_data, size_t key_size)
     return !res;
 }
 
-Set *BDB_Set_create(const char *filepath)
+static Set *BDB_Set_create(const char *filepath, int type)
 {
     BDB_Set *set;
     DB *db;
 
-    db = dbopen(filepath, O_CREAT | O_RDWR, 0666, DB_BTREE, NULL);
+    db = dbopen(filepath, O_CREAT | O_RDWR, 0666, type, NULL);
     if (db == NULL)
         return NULL;
 
@@ -63,3 +63,14 @@ Set *BDB_Set_create(const char *filepath)
 
     return &set->base;
 }
+
+Set *BDB_Btree_Set_create(const char *filepath)
+{
+    return BDB_Set_create(filepath, DB_BTREE);
+}
+
+Set *BDB_Hash_Set_create(const char *filepath)
+{
+    return BDB_Set_create(filepath, DB_HASH);
+}
+

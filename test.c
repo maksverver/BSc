@@ -26,7 +26,7 @@ static void parse_args(int argc, char *argv[])
     bool keepdb = false;
     int type = -1, pagesize;
 
-    while ((opt = getopt(argc, argv, "bc:k")) != -1)
+    while ((opt = getopt(argc, argv, "bhc:k")) != -1)
         switch (opt)
         {
         case 'b':
@@ -34,9 +34,14 @@ static void parse_args(int argc, char *argv[])
             type = 0;
             break;
 
-        case 'c':
+        case 'h':
             assert(type == -1);
             type = 1;
+            break;
+
+        case 'c':
+            assert(type == -1);
+            type = 2;
             pagesize = atoi(optarg);
             break;
 
@@ -53,6 +58,7 @@ static void parse_args(int argc, char *argv[])
     {
         printf("Usage:\n"
                "\ttest -b [opts]            (BerkeleyDB B-tree backed)\n"
+               "\ttest -h [opts]            (BerkeleyDB hash table backed)\n"
                "\ttest -c pagesize [opts]   (Custom B-tree backed)\n"
                "Options:\n"
                "\t-k      Keep database file.\n");
@@ -64,12 +70,17 @@ static void parse_args(int argc, char *argv[])
     switch (type)
     {
     case 0:
-        set = BDB_Set_create(path);
+        set = BDB_Btree_Set_create(path);
         break;
 
     case 1:
+        set = BDB_Hash_Set_create(path);
+        break;
+
+    case 2:
         set = Btree_Set_create(path, pagesize);
         break;
+
     }
     if (!keepdb)
         unlink(path);
