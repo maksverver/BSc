@@ -33,7 +33,7 @@ Mathematics and Computer Science}
 
 \maketitle
 
-\keywords{cache efficiency,locality of reference,algorithms}
+\keywords{cache efficiency, locality of reference, algorithms}
 
 \section{Introduction}
 A fundamental part of theoretical computer science is the study of algorithms: formal descriptions of how computations may be performed. In order for algorithms to be able to process information efficiently, it must be stored in a systematic way, called a data structure. Algorithms and data structures therefore complement each other: while algorithms describe how a computer may process information, data structures describe how information is stored in a (model of a) computer's memory.
@@ -42,16 +42,16 @@ Traditionally, algorithms have been evaluated in a simplified model of computati
 
 This model is close enough to the way computers work to be extremely useful in the development and analysis of data structures and algorithms that work well in practice. However, like every model, it is a simplification of reality. One of the simplifications of the model that has become more detached from reality, is the uniform memory model: the assumption that storing and retrieving data in memory is a constant-time operation.
 
-The main reasons this simplification does not hold in practice is that processors can process data much faster than it can be read from (or written to) memory. To overcome the memory bottleneck, system designers have added faster cache memory at various points in the computer system. This has resulted in hierarchical ordering of various types of memory, each faster but smaller than the next, such as the processor's registers, L1 cache on the processor die, L2 cache, main memory, magnetic disk storage and sometimes network storage.
+The main reasons this simplification does not hold in practice is that processors can process data much faster than it can be read from (or written to) memory. To overcome the memory bottleneck, computer system designers have added faster cache memory at various points in the computer architecture. This has resulted in a hierarchical ordering of various types of memory, each faster but smaller than the next, such as the processor's registers, L1 cache on the processor die, L2 cache, main memory, magnetic disk storage and sometimes network storage.
 
 [TODO: add picture of memory hierarchy]
 
-[TODO: more detailed discussion of how fast memory acts as a cache for slow memory, data is transfered and blocks, and how this leads to algorithms that have good temporal and spatial locality to have superior performance.]
+[TODO: more detailed discussion of how fast memory acts as a cache for slow memory, data is transferred and blocks, and how this leads to algorithms that have good temporal and spatial locality to have superior performance.]
 
 Given this reality, the performance of many existing algorithms and data structures can be improved by taking the existence of a memory hierarchy into account. To be able to analyze these algorithms and data structures formally, a different model of computation and especially of the cost of accessing data in memory is required.
 
 \subsection{External memory model}
-In the external memory model, as described by Aggarwal and Vitter (\cite{aggarwal1988ioc}), a distinction is made between internal memory (which is limited in size) and external memory (which is virtually unlimited). The external memory is subdivided into blocks of a fixed size and only entire blocks of data can be transfered between the two memories. The advantage of using such a model is that it more accurately reflects reality yet still allows formal analysis of the performance of various algorithms and data structures. Although Aggarwal and Vitter focus on magnetic disk as a storage medium for external memory, the model can be generalized to apply to every pair of adjacent levels in the memory hierarchy. In that case, the possibility of transfering several data blocks at once is usually dropped.
+In the external memory model, as described by Aggarwal and Vitter (\cite{aggarwal1988ioc}), a distinction is made between internal memory (which is limited in size) and external memory (which is virtually unlimited). The external memory is subdivided into blocks of a fixed size and only entire blocks of data can be transferred between the two memories. The advantage of using such a model is that it more accurately reflects reality yet still allows formal analysis of the performance of various algorithms and data structures. Although Aggarwal and Vitter focus on magnetic disk as a storage medium for external memory, the model can be generalized to apply to every pair of adjacent levels in the memory hierarchy. In that case, the possibility of transferring several data blocks at once is usually dropped.
 
 \subsection{Cache-oblivious memory model}
 The external memory model can be simplified and extended to a cache-oblivious model (\cite{prokop1999coa}) which recognizes the same distinction between internal and external memory, but does not assume the relevant parameters (size of the cache and size of the data blocks) are known. Therefore, cache-oblivious data structures and algorithms must be defined without explicitly referencing these parameters, yet still perform well when evaluated in the cache-oblivious model. Algorithms that perform well in the cache-oblivious model are more general (since they have no parameters that must be specified) and by design tuned to all levels in the memory hierarchy, which means they should perform well in practice without any tuning.
@@ -63,7 +63,7 @@ The development of the different memory models means data structures and algorit
 \begin{list}{}{}
 \item \textbf{Cache-aware} data structures and algorithms perform optimally in the external memory model, but require parametrization with some or all properties of the cache lay-out (such as block size or cache memory size).
 \item \textbf{Cache-unaware} [does a better term exist?] data structures and algorithms  are designed with the uniform memory model in mind and may therefore not perform optimally in the external memory model.
-\item \textbf{Cache-oblivious} data structures and algorithms are designed to perform optimally in the cache-oblivious model, meaning they are also optimal in the external memory model (in the asymptotical sense and up to a constant factor of memory transfers) without requiring tuning of parameters.
+\item \textbf{Cache-oblivious} data structures and algorithms are designed to perform optimally in the cache-oblivious model, meaning they are also optimal in the external memory model (in the asymptotic sense and up to a constant factor of memory transfers) without requiring tuning of parameters.
 \end{list}
 
 \section{Related work}
@@ -78,13 +78,13 @@ Vitter presents a theoretical survey of algorithms evaluated in a parallel disk 
 \section{Problem statement}
 Several cache-oblivious data structures and algorithms have been proposed. In most cases, theoretical complexity analysis shows that the proposed solutions are asymptotically optimal, or equivalent to alternative non-oblivious solutions (up to a constant factor). However, in software engineering practice we are not only interesting in asymptotic computational complexity, but also in the practical performance of data structures and algorithms. Indeed, many algorithms that have undesirable theoretical properties are actually widely used because they perform well in practice (for example, sorting algorithms like Quicksort and Shell sort).
 
-This raises the question wether cache-oblivious data structures are actually preferable to traditional data structures in practice. The theory suggests that cache-oblivious algorithms should perform well, but this can only be confirmed by evaluating their performance in a realistic environment and operating on a realistic data set. However, such empirical data is scarce when it comes to cache-oblivious data structures. The goal of the proposed research is to perform an empirical evaluation of previously described cache-oblivious data structures and compare them with their traditional counterparts (both cache-aware and cache-unaware data structures).
+This raises the question whether cache-oblivious data structures are actually preferable to traditional data structures in practice. The theory suggests that cache-oblivious algorithms should perform well, but this can only be confirmed by evaluating their performance in a realistic environment and operating on a realistic data set. However, such empirical data is scarce when it comes to cache-oblivious data structures. The goal of the proposed research is to perform an empirical evaluation of previously described cache-oblivious data structures and compare them with their traditional counterparts (both cache-aware and cache-unaware data structures).
 
-From the application programmer's point of view, datastructures and algorithms can be grouped together based on the functionality they provide. For example, all comparison-based sorting algorithms can be considered to provide equivalent functionality, even if their performance is different. Since it is not sensible to compare data structures which provide different functionality, it is necessary to limit the scope of the research to data structures that provide similar functions. For the proposed research, we will focus on dictionary-like data structures. Such data structures support storage and retrieval of data values by associating them with a particular data value, called a key.
+From the application programmer's point of view, data structures and algorithms can be grouped together based on the functionality they provide. For example, all comparison-based sorting algorithms can be considered to provide equivalent functionality, even if their performance is different. Since it is not sensible to compare data structures which provide different functionality, it is necessary to limit the scope of the research to data structures that provide similar functions. For the proposed research, we will focus on dictionary-like data structures. Such data structures support storage and retrieval of data values by associating them with a particular data value, called a key.
 
 [TODO: discuss many variations in more detail? E.g. in-order traversal, range queries, etc.]
 
-By disregarding the values in a dictionary, it can be simplified to a dynamic set. A set data structure supports (at the very least) insertion of elements and querying wether the set contains a particular element. This is an important class of data structures, because their functionality is often required to implement efficient combinatorial search algorithms. Since these search algorithms are often used to process large large data sets, the performance of underlying data structures is important.
+By disregarding the values in a dictionary, it can be simplified to a dynamic set. A set data structure supports (at the very least) insertion of elements and querying whether the set contains a particular element. This is an important class of data structures, because their functionality is often required to implement efficient combinatorial search algorithms. Since these search algorithms are often used to process large large data sets, the performance of underlying data structures is important.
 
 \subsection{Research questions}
 Following from the above, the main question to be answered is:
@@ -131,7 +131,7 @@ while (!queue.empty()) {
 \label{prog-search}
 \end{program}
 
-Since searching elements in and adding elements to a dynamic set is more complicated than simply inserting and extracting states from a first-in-first-out queue, the runtime of the algorithm will be dominated by the performance of the set (assuming context-dependent functions like \verb#successors# and \verb#isGoal# in the sample code are efficient). The main focus of the research will therefore be on alternative implementations of the set data structure.
+Since searching elements in and adding elements to a dynamic set is more complicated than simply inserting and extracting states from a first-in-first-out queue, the execution time of the algorithm will be dominated by the performance of the set (assuming context-dependent functions like \verb#successors# and \verb#isGoal# in the sample code are efficient). The main focus of the research will therefore be on alternative implementations of the set data structure.
 
 The situation changes, of course, when instead of a first-in-first-out queue a priority queue is used. This is often the case when we are searching for a shortest path (instead of any path that reaches the goal) or when heuristics are used in the search. In this case, the complexity of the queue increases. If time allows it, the research could be extended to evaluating different implementations of priority queues as well.
 
@@ -139,16 +139,16 @@ The situation changes, of course, when instead of a first-in-first-out queue a p
 A minimal set data structure should be able to determine whether or not a given element is a member of the set. A dynamic set differs from a static set in that it support operations to add and/or remove elements from the set dynamically. In our experiments, we will start out with an empty set and only allow for insertion of new elements. This means the our dynamic set must support two basic operations:
 \begin{itemize}
 \item \verb#insert(S,X)# -- Inserts $X$ into set $S$, if it is not yet present.
-\item \verb#contains(S,X)# -- Returns wether set $S$ contains $X$.
+\item \verb#contains(S,X)# -- Returns whether set $S$ contains $X$.
 \end{itemize}
-In practice, it useful to be able to test if a set contains an element, and add this element if it does not. This can be implemented by first testing for the existence, and then conditionally inserting the element (as is done in program \ref{prog-search}) but many data structures allow to combine this into a single operation. We will therefore require that the \verb#insert# operation also returns wether or not the element was newly inserted.
+In practice, it useful to be able to test if a set contains an element, and add this element if it does not. This can be implemented by first testing for the existence, and then conditionally inserting the element (as is done in program \ref{prog-search}) but many data structures allow to combine this into a single operation. We will therefore require that the \verb#insert# operation also returns whether or not the element was newly inserted.
 
 \subsection{Set implementations}
 Many different data structures have been developed that can be used to efficiently implement the operations described above. Several data structures will be selected from the three categories listed in the introduction:
 \begin{itemize}
 \item \textbf{Cache-unaware}: e.g. a hash table.
 \item \textbf{Cache-aware}: e.g. a traditional B-tree.
-\item \textbf{Cache-obvlious}: e.g. a cache-oblivious B-tree.
+\item \textbf{Cache-oblivious}: e.g. a cache-oblivious B-tree.
 \end{itemize}
 [To be determined: which data structures to use?]
 
@@ -157,7 +157,7 @@ The cache-oblivious data structures have been developed recently and are not com
 In an attempt to reduce the bias caused by differences in functionality and quality between existing libraries, all data structures used in the performance evaluation will be implemented from scratch. Existing libraries will only be used to verify that the newly implemented data structures have appropriate performance.
 
 \subsection{Measurement}
-As described in the problem statement, the main metric of interest is the total runtime of our algorithm, since the focus of the research is to determine the practical merit of the data structures used.
+As described in the problem statement, the main metric of interest is the total execution time of our algorithm, since the focus of the research is to determine the practical merit of the data structures used.
 
 [To be determined: which hardware and software platform used, et cetera.]
 
@@ -180,7 +180,7 @@ See table \ref{tab-planning}.
 \textbf{Task} & \textbf{Result} & \textbf{Deadline} \\
 \hline
 Finish research proposal
-    & Final reseach proposal
+    & Final research proposal
     & March 27th \\
 Study literature
     & "Related work" section
