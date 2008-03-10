@@ -1,0 +1,212 @@
+\documentclass{acm_proc_article-sp}
+
+\usepackage{pslatex}
+\usepackage{epsfig}
+\usepackage{appendix}
+\usepackage{float}
+
+\floatstyle{ruled}
+\newfloat{program}{thp}{lop}
+\floatname{program}{Program}
+
+\begin{document}
+
+\title{Evaluation of Cache-Oblivious Data Structures\\Draft research proposal}
+
+\numberofauthors{1}
+\author{Maks Verver\\ \email{m.verver@student.utwente.nl}}
+
+% Obligatory permission block
+\toappear{
+Permission to make digital or hard copies of all or part of this work
+for personal or classroom use is granted without fee provided that
+copies are not made or distributed for profit or commercial advantage
+and that copies bear this notice and the full citation on the first
+page. To copy otherwise, or republish, to post on servers or to
+redistribute to lists, requires prior specific permission.
+
+\textit{\small 8$^{th}$ Twente Student Conference on IT, Enschede, June, 2008}
+
+Copyright 2008, University of Twente, Faculty of Electrical Engineering,
+Mathematics and Computer Science}
+% End of obligatory permission block
+
+\maketitle
+
+\keywords{cache efficiency, locality of reference, algorithms}
+
+\section{Introduction}
+A fundamental part of theoretical computer science is the study of algorithms: formal descriptions of how computations may be performed. In order for algorithms to be able to process information efficiently, it must be stored in a systematic way, called a data structure. Algorithms and data structures therefore complement each other: while algorithms describe how a computer may process information, data structures describe how information is stored in a (model of a) computer's memory.
+
+Traditionally, algorithms have been evaluated in a simplified model of computation. In this model it is assumed that a computer executes an algorithm in discrete steps, and at each step it performs one elementary operation (e.g. comparing two numbers, adding one to another, storing a value in memory, et cetera). Each elementary operation is performed within a constant time. In this model, both storing and retrieving data values in memory is considered to be an elementary operation.
+
+This model is close enough to the way computers work to be extremely useful in the development and analysis of data structures and algorithms that work well in practice. However, like every model, it is a simplification of reality. One of the simplifications of the model that has become more detached from reality, is the uniform memory model: the assumption that storing and retrieving data in memory is a constant-time operation.
+
+The main reasons this simplification does not hold in practice is that processors can process data much faster than it can be read from (or written to) memory. To overcome the memory bottleneck, computer system designers have added faster cache memory at various points in the computer architecture. This has resulted in a hierarchical ordering of various types of memory, each faster but smaller than the next, such as the processor's registers, L1 cache on the processor die, L2 cache, main memory, magnetic disk storage and sometimes network storage.
+
+[TODO: add picture of memory hierarchy]
+
+[TODO: more detailed discussion of how fast memory acts as a cache for slow memory, data is transferred and blocks, and how this leads to algorithms that have good temporal and spatial locality to have superior performance.]
+
+Given this reality, the performance of many existing algorithms and data structures can be improved by taking the existence of a memory hierarchy into account. To be able to analyze these algorithms and data structures formally, a different model of computation and especially of the cost of accessing data in memory is required.
+
+\subsection{External Memory Model}
+In the external memory model, as described by Aggarwal and Vitter (\cite{aggarwal1988ioc}), a distinction is made between internal memory (which is limited in size) and external memory (which is virtually unlimited). The external memory is subdivided into blocks of a fixed size and only entire blocks of data can be transferred between the two memories. The advantage of using such a model is that it more accurately reflects reality yet still allows formal analysis of the performance of various algorithms and data structures. Although Aggarwal and Vitter focus on magnetic disk as a storage medium for external memory, the model can be generalized to apply to every pair of adjacent levels in the memory hierarchy. In that case, the possibility of transferring several data blocks at once is usually dropped.
+
+\subsection{Cache-Oblivious Memory Model}
+The external memory model can be simplified and extended to a cache-oblivious model (\cite{prokop1999coa}) which recognizes the same distinction between internal and external memory, but does not assume the relevant parameters (size of the cache and size of the data blocks) are known. Therefore, cache-oblivious data structures and algorithms must be defined without explicitly referencing these parameters, yet still perform well when evaluated in the cache-oblivious model. Algorithms that perform well in the cache-oblivious model are more general (since they have no parameters that must be specified) and by design tuned to all levels in the memory hierarchy, which means they should perform well in practice without any tuning.
+
+Erik D. Demaine gives an introduction into the cache-oblivious memory model and an overview of a selection of cache-oblivious data structures and algorithms (\cite{demaine2002coa}). He also motivates the simplifications made in the cache-oblivious memory model, such as the assumption of full cache associativity and an optimal replacement policy.
+
+\subsection{Categories}
+The development of the different memory models means data structures and algorithms can be classified depending on the assumptions about their environment used in their definitions.
+\begin{list}{}{}
+\item \textbf{Cache-aware} data structures and algorithms perform optimally in the external memory model, but require parametrization with some or all properties of the cache layout (such as block size or cache memory size).
+\item \textbf{Cache-unaware} [does a better term exist?] data structures and algorithms  are designed with the uniform memory model in mind and may therefore not perform optimally in the external memory model.
+\item \textbf{Cache-oblivious} data structures and algorithms are designed to perform optimally in the cache-oblivious model, meaning they are also optimal in the external memory model (in the asymptotic sense and up to a constant factor of memory transfers) without requiring tuning of parameters.
+\end{list}
+
+\section{Related Work}
+Many data structures and algorithms have been analyzed in the cache-oblivious model. In many cases, new data structures and algorithms have been introduced that perform optimally in this model. Prokop presents asymptotically optimal cache-oblivious algorithms for matrix transposition, fast Fourier transformation and sorting (\cite{prokop1999coa}). Bender, Demaine and Farach-Colton designed a cache-oblivious variant of a B-tree (\cite{bender2005cob}, \cite{bender2004lpc}).
+
+Vitter presents a theoretical survey of algorithms evaluated in a parallel disk model (\cite{vitter2001ema}), which is a refinement of the external memory model described by Aggarwal and Vitter, but only allows parallel transfer of multiple blocks from different disks, which is more realistic.
+
+[TODO: add more recent related work]
+
+[TODO: find empirical results if they exists, or note lack of empirical data]
+
+\section{Problem Statement}
+Several cache-oblivious data structures and algorithms have been described above. Theoretical complexity analysis shows that the proposed solutions are asymptotically optimal. However, in software engineering practice we are not only interested in computational complexity, but also in the practical performance of data structures and algorithms. Indeed, many algorithms that have undesirable theoretical complexity are actually widely used because they perform well in practice (for example, sorting algorithms like Quicksort and Shell sort).
+
+This raises the question whether cache-oblivious data structures are actually preferable to traditional data structures in practice. The theory suggests that cache-oblivious algorithms should perform well, but this can only be confirmed by evaluating their performance in a realistic environment and operating on a realistic data set. However, such empirical data is scarce when it comes to cache-oblivious data structures. The goal of the proposed research is to perform an empirical evaluation of previously described cache-oblivious data structures and compare them with their traditional counterparts (both cache-aware and cache-unaware data structures).
+
+From the application programmer's point of view, data structures and algorithms can be grouped together based on the functionality they provide. For example, all comparison-based sorting algorithms can be considered to provide equivalent functionality, even if their performance is different. Since it is not sensible to compare data structures which provide different functionality, it is necessary to limit the scope of the project to data structures that provide similar functions. For the proposed research, we will focus on dictionary-like data structures. Such data structures support storage and retrieval of data values by associating them with a particular data value, called a key.
+
+[TODO: discuss many variations in more detail? E.g. in-order traversal, range queries, etc.]
+
+By disregarding the values in a dictionary, it can be simplified to a dynamic set. A set data structure supports (at the very least) insertion of elements and querying whether the set contains a particular element. This is an important class of data structures, because their functionality is often required to implement efficient combinatorial search algorithms. Since these search algorithms are often used to process large large data sets, the performance of underlying data structures is important.
+
+\subsection{Research Questions}
+Following from the above, the main question to be answered is:
+\begin{list}{}{}
+\item Do cache-oblivious data structures have practical merit?
+\end{list}
+
+More specifically, these questions will be answered:
+\newcounter{cnt}
+\begin{list}{\arabic{cnt}.}{\usecounter{cnt}}
+\item How do cache-oblivious dictionary data structures perform when compared to cache-aware data structures?
+\item How do cache-oblivious dictionary data structures perform when compared to cache-unaware data structures?
+\item How does the memory use of cache-oblivious data structures relate to the memory used by the other data structures?
+\end{list}
+Because we are primarily interested in practical performance, the measure of performance will be the actual run-time of the experiments. Memory use is of interest as well (if only as a secondary criterion) as it may reveal that there is a trade-off between memory use and execution time of data structures.
+
+\section{Research Approach}
+
+% To add:
+% - language of implementation
+% - platform used
+% - data used
+% - how to test
+
+The goal of the project is to evaluate a variety of dictionary-like data structures in a practical setting. For this, we need a realistic scenario that makes heavy use of dictionaries, and that allows us to easily change the implementation used. The scenario that will be used, is that of a state-space search. The purpose of such an algorithm is to find an optimal path from a (set of) given initial state(s) to a goal state. State search algorithms are often used to solve reachability problems, which occur for example in formal model checking. The main data structures used are a queue (either a regular queue or, if search heuristics are used, a priority queue) and a dynamic set. An example of a simple state search algorithm is given in program \ref{prog-search}.
+
+\begin{program}
+\begin{verbatim}
+Queue queue = new Queue;
+Set visited = new Set;
+queue.insert(initial_state);
+while (!queue.empty()) {
+    State state = queue.extract();
+    for (State s : successors(state)) {
+        if (isGoal(s)) break;
+        if (visited.contains(s) == false) {
+            visited.insert(s);
+            queue.insert(s);
+        }
+    }
+}
+\end{verbatim}
+\caption{Pseudo-code for a simple state search algorithm.}
+\label{prog-search}
+\end{program}
+
+Since searching elements in and adding elements to a dynamic set is more complicated than simply inserting and extracting states from a first-in-first-out queue, the execution time of the algorithm will be dominated by the performance of the set (assuming context-dependent functions like \verb#successors# and \verb#isGoal# in the sample code are efficient). The main focus of the research project will therefore be on alternative implementations of the set data structure.
+
+The situation changes, of course, when instead of a first-in-first-out queue a priority queue is used. This is often the case when we are searching for a shortest path (instead of any path that reaches the goal) or when heuristics are used in the search. In this case, the complexity of the queue increases. If time allows it, the project could be extended to evaluating different implementations of priority queues as well.
+
+\subsection{Set Operations}
+A minimal set data structure should be able to determine whether or not a given element is a member of the set. A dynamic set differs from a static set in that it support operations to add and/or remove elements from the set dynamically. In our experiments, we will start out with an empty set and only allow for insertion of new elements. This means the our dynamic set must support two basic operations:
+\begin{itemize}
+\item \verb#insert(S,X)# -- Inserts $X$ into set $S$, if it is not yet present.
+\item \verb#contains(S,X)# -- Returns whether set $S$ contains $X$.
+\end{itemize}
+In practice, it useful to be able to test if a set contains an element, and add this element if it does not. This can be implemented by first testing for the existence, and then conditionally inserting the element (as is done in program \ref{prog-search}) but many data structures allow to combine this into a single operation. We will therefore require that the \verb#insert# operation also returns whether or not the element was newly inserted.
+
+\subsection{Set Implementations}
+Many different data structures have been developed that can be used to efficiently implement the operations described above. Several data structures will be selected from the three categories listed in the introduction:
+\begin{itemize}
+\item \textbf{Cache-unaware}: e.g. a hash table.
+\item \textbf{Cache-aware}: e.g. a traditional B-tree.
+\item \textbf{Cache-oblivious}: e.g. a cache-oblivious B-tree.
+\end{itemize}
+[To be determined: which data structures to use?]
+
+The cache-oblivious data structures have been developed recently and are not commonly used in practice. These will have to be implemented from scratch, using existing publications as a guideline. The traditional data structures are commonly used in practice and therefore there are high-quality implementations already available as software libraries. For this research, however, it is undesirable to use existing libraries, for two reasons. First, many existing implementations support additional operations (such as removal of elements, locking and synchronization, atomic transactions, et cetera) which are not used in our experiments, but which may harm the performance of these implementations. Second, many established libraries have been thoroughly optimized while our newly implemented data structures have not. This may give the well-optimized data structures an unfair advantage.
+
+In an attempt to reduce the bias caused by differences in functionality and quality between existing libraries, all data structures used in the performance evaluation will be implemented from scratch. Existing libraries will only be used to verify that the newly implemented data structures have appropriate performance.
+
+\subsection{Measurement}
+As described in the problem statement, the main metric of interest is the total execution time of our algorithm, since the focus of the project is to determine the practical merit of the data structures used.
+
+[To be determined: which hardware and software platform used, et cetera.]
+
+Apart from the framework in which the various data structures are evaluated, an important decision is the choice of the data set used to perform the experiments. At least three variables must be taken into account:
+\begin{itemize}
+\item The size of the data set: Cache-oblivious data structures usually rely on asymptotic optimality, which means that they should perform well on large data sets. It would be interesting to see what the effect of various data sizes is on their relative performance.
+\item The ratio between queries and insertions: for a particular data structure, it may be much more efficient to query the existence of a value in the set than to add a new value to it. We should either ensure our ratio between queries and insertions is realistic, or run experiments with varying ratios to see how this affects the performance of different data structures.
+\item Data access patterns: some data structures perform better when accessing elements that have recently been accessed before. Again, we should either ensure our access patterns are realistic, or test with varying access patterns and see how data structures are affected.
+\end{itemize}
+
+Finally, we must estimate the overhead caused by our testing framework and other outside influences, to be able to quantify the results obtained.
+
+\section{Planning}
+See table \ref{tab-planning}.
+
+\begin{table*}
+\begin{center}
+\begin{tabular}{ | l | l | l | }
+\hline
+\textbf{Task} & \textbf{Result} & \textbf{Deadline} \\
+\hline
+Finish research proposal
+    & Final research proposal
+    & March 27th \\
+Study literature
+    & "Related Work" section
+    & April 4th \\
+Implement algorithms
+    & Working code
+    & April 28th \\
+Finish paper contents
+    & Complete paper for peer review
+    & May 6th \\
+Revise paper
+    & Revised paper
+    & May 23rd \\
+Final paper formatting
+    & Finished paper
+    & June 11th \\
+Prepare presentation
+    & Presentation
+    & June 20th \\
+\hline
+\end{tabular}
+\caption{Planning}
+\label{tab-planning}
+\end{center}
+\end{table*}
+
+\bibliographystyle{alpha}
+\bibliography{proposal}
+\end{document}

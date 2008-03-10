@@ -1,0 +1,7 @@
+1. Introduction -> what is the situation?
+2. Problem Statement -> what is the specific problem you will try to solve?
+3. Approach -> what do you intend to do?
+4. Related Work -> discuss related work (can be moved up a few places)
+5. Planning -> table of (task,result,deadline)
+6. References
+
