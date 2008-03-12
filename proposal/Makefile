@@ -1,5 +1,5 @@
 
-proposal.dvi: proposal.tex
+proposal.dvi: proposal.tex proposal.bib
 	latex "$<"
 	bibtex "`basename "$<" .tex`".aux
 	latex "$<"
