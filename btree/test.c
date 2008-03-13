@@ -27,6 +27,7 @@ static void parse_args(int argc, char *argv[])
     int type = -1, pagesize;
 
     while ((opt = getopt(argc, argv, "bhc:k")) != -1)
+    {
         switch (opt)
         {
         case 'b':
@@ -53,6 +54,7 @@ static void parse_args(int argc, char *argv[])
             fprintf(stderr, "Unknown option: %c\n", opt);
             exit(1);
         }
+    }
 
     if (type == -1)
     {

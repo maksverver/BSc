@@ -56,6 +56,8 @@ struct PageEntry
     char   data[1];         /* Data */
 };
 
+/* Prints the contents of the given page in a human-readable format.
+   Useful for debugging. */
 static void debug_print_page(Btree_Set *set, char *page, FILE *fp)
 {
     int n, N;
@@ -72,7 +74,9 @@ static void debug_print_page(Btree_Set *set, char *page, FILE *fp)
         if (n > 0)
         {
             if (n%16 == 0)
+            {
                 putc('\n', fp);
+            }
             else
             {
                 putc(' ', fp);
@@ -289,10 +293,14 @@ static struct PageEntry *find_or_insert_page( Btree_Set *set, int pageno,
         d = cmp(page + BEGIN(page, mid), SIZE(page, mid), key_data, key_size);
 
         if (d < 0)
+        {
             n = mid + 1;
+        }
         else
         if (d > 0)
+        {
             m = mid;
+        }
         else
         {
             /* Entry found! */
