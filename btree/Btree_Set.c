@@ -47,14 +47,19 @@ typedef struct Btree_Set
     size_t  pagesize;       /* Size of data pages */
     int     pages;          /* Number of pages */
     int     root;           /* Index of root page */
+
+    /* Temporary memory pool */
+    size_t  mem_size;       /* Total amount of memory allocated */
+    size_t  mem_used;       /* Memory used (set to zero before each operation) */
+    char    *mem;           /* Allocated memory pool */
 } Btree_Set;
 
-struct PageEntry
+typedef struct PageEntry
 {
     size_t size;            /* Size of data */
     int    child;           /* Index of page following entry */
     char   data[1];         /* Data */
-};
+} PageEntry;
 
 /* Prints the contents of the given page in a human-readable format.
    Useful for debugging. */
@@ -91,16 +96,27 @@ static void debug_print_page(Btree_Set *set, char *page, FILE *fp)
     fprintf(fp, "----\n");
 }
 
-/* Allocates a blank page.
-   The memory is zeroed to make debugging easier. */
+/*  Allocates the requested number of a bytes from the reserved space. */
+static void *alloc_mem(Btree_Set *set, size_t size)
+{
+    void *data;
+
+    /* Align to "long" while assuming sizeof(long) is a power of two! */
+    size = (size + (sizeof(long) - 1))&~(sizeof(long) - 1);
+
+    /* Allocate from the pool. */
+    assert(set->mem_size - set->mem_used >= size);
+    data = set->mem + set->mem_used;
+    set->mem_used += size;
+
+    return data;
+}
+
+/* Allocates a new page from the reserved space.
+   This page must not be freed by the caller. */
 static void *alloc_page(Btree_Set *set)
 {
-    char *page;
-
-    page = calloc(1, set->pagesize);
-    assert(page != NULL);
-
-    return page;
+    return alloc_mem(set, set->pagesize);
 }
 
 /* Reads a page with the given index.
@@ -154,12 +170,12 @@ static void set_destroy(Btree_Set *set)
 
 /* Creates an entry to be inserted in a page, consisting of a value
    (a size/data pair) and a successor page index. */
-static struct PageEntry *make_entry(size_t size, int page, const void *data)
+static PageEntry *make_entry(
+    Btree_Set *set, size_t size, int page, const void *data)
 {
-    struct PageEntry *entry;
+    PageEntry *entry;
 
-    entry = malloc(sizeof(struct PageEntry) + size);
-    assert(entry != NULL);
+    entry = alloc_mem(set, sizeof(PageEntry) + size);
     entry->size  = size;
     entry->child = page;
     memcpy(entry->data, data, size);
@@ -188,10 +204,10 @@ static int cmp(const void *d1, size_t s1, const void *d2, size_t s2)
    The 'entry' should be dynamically allocated, and is freed by this function.
    If the page has to be split, a new entry is returned, that is to be inserted
    in the parent page; this entry must be freed by the caller. */
-static struct PageEntry *insert_entry( Btree_Set *set,
-    char *page, int pos, struct PageEntry *entry )
+static PageEntry *insert_entry( Btree_Set *set,
+    char *page, int pos, PageEntry *entry )
 {
-    struct PageEntry *result;
+    PageEntry *result;
     int N, size;
 
     N    = COUNT(page);
@@ -219,9 +235,6 @@ static struct PageEntry *insert_entry( Btree_Set *set,
         while (++pos <= N)
             END(page, pos) += entry->size;
         ++COUNT(page);
-
-        /* Free inserted entry */
-        free(entry);
     }
     else
     {
@@ -236,12 +249,13 @@ static struct PageEntry *insert_entry( Btree_Set *set,
         k = N/2;
 
         /* Take out middle page */
-        result = make_entry(SIZE(page, k), set->pages++, page + BEGIN(page, k));
+        result = make_entry(set, SIZE(page, k), set->pages++, page + BEGIN(page, k));
         COUNT(page) = k;
 
         /* Create new page */
         /* NB. This uses some knowledge of the page lay-out */
         new_page = alloc_page(set);
+        memset(new_page, 0, set->pagesize); /* for debugging */
         COUNT(new_page) = N - (k + 1);
         memcpy(new_page, page + BEGIN(page, k + 1),
                END(page, N - 1) - BEGIN(page, k + 1));
@@ -266,18 +280,17 @@ static struct PageEntry *insert_entry( Btree_Set *set,
 
         /* Write out newly created page. */
         write_page(set, new_page, result->child);
-        free(new_page);
     }
 
     return result;
 }
 
-static struct PageEntry *find_or_insert_page( Btree_Set *set, int pageno,
+static PageEntry *find_or_insert_page( Btree_Set *set, int pageno,
     const void *key_data, size_t key_size, bool *found )
 {
     char *page;
     int N, n, m, child;
-    struct PageEntry *entry;
+    PageEntry *entry;
 
     page = read_page(set, pageno);
     N = COUNT(page);
@@ -305,7 +318,6 @@ static struct PageEntry *find_or_insert_page( Btree_Set *set, int pageno,
         {
             /* Entry found! */
             *found = true;
-            free(page);
             return NULL;
         }
     }
@@ -318,7 +330,7 @@ static struct PageEntry *find_or_insert_page( Btree_Set *set, int pageno,
         if (*found)
         {
             /* Entry not found and we must insert it. */
-            entry = make_entry(key_size, -1, key_data);
+            entry = make_entry(set, key_size, -1, key_data);
         }
         else
         {
@@ -340,15 +352,13 @@ static struct PageEntry *find_or_insert_page( Btree_Set *set, int pageno,
         write_page(set, page, pageno);
     }
 
-    free(page);
-
     return entry;
 }
 
 static bool find_or_insert( Btree_Set *set,
     const void *key_data, size_t key_size, bool insert_if_not_found )
 {
-    struct PageEntry *entry;
+    PageEntry *entry;
     bool found;
 
     found = insert_if_not_found;
@@ -360,6 +370,7 @@ static bool find_or_insert( Btree_Set *set,
         char *page;
 
         page = alloc_page(set);
+        memset(page, 0, set->pagesize); /* for debugging */
         COUNT(page) = 1;
         BEGIN(page, 0) = 0;
         END(page, 0) = entry->size;
@@ -368,7 +379,6 @@ static bool find_or_insert( Btree_Set *set,
         CHILD(page, 1) = entry->child;
         write_page(set, page, set->pages);
         set->root = set->pages++;
-        free(page);
     }
 
     return found;
@@ -377,12 +387,13 @@ static bool find_or_insert( Btree_Set *set,
 static bool set_insert(Btree_Set *set, const void *key_data, size_t key_size)
 {
     assert(key_size <= (set->pagesize - ISIZE(4))/4);
-
+    set->mem_used = 0;
     return find_or_insert(set, key_data, key_size, true);
 }
 
 static bool set_contains(Btree_Set *set, const void *key_data, size_t key_size)
 {
+    set->mem_used = 0;
     return find_or_insert(set, key_data, key_size, false);
 }
 
@@ -391,19 +402,33 @@ Set *Btree_Set_create(const char *filepath, size_t pagesize)
     Btree_Set *set;
     int fd;
     char *page;
+    char *mem;
+    size_t mem_size;
 
     /* Ensure page size is valid */
     assert(pagesize > ISIZE(4));
     assert(pagesize%sizeof(int) == 0);
     assert(pagesize%sizeof(int) == 0);
 
+    /* Open file */
     fd = open(filepath, O_CREAT | O_RDWR, 0666);
     if (fd < 0)
         return NULL;
 
+    /* Allocate memory */
     set = malloc(sizeof(Btree_Set));
     if (set == NULL)
         return NULL;
+
+    /* Temporary memory is needed to fetch pages and to copy entries, so an
+       upper bound is: 2*H*pagesize, where H is the maximum height of the B-tree. */
+    mem_size = 2*20*pagesize;
+    mem = malloc(mem_size);
+    if (mem == NULL)
+    {
+        free(set);
+        return NULL;
+    }
 
     set->base.destroy  = (void*)set_destroy;
     set->base.insert   = (void*)set_insert;
@@ -412,14 +437,17 @@ Set *Btree_Set_create(const char *filepath, size_t pagesize)
     set->pagesize = pagesize;
     set->pages    = 1;
     set->root     = 0;
+    set->mem_size = mem_size;
+    set->mem_used = 0;
+    set->mem      = mem;
 
     /* Create root page. */
     page = alloc_page(set);
+    memset(page, 0, set->pagesize); /* for debugging */
     COUNT(page)    = 0;
     BEGIN(page, 0) = 0;
     CHILD(page, 0) = -1;
     write_page(set, page, 0);
-    free(page);
 
     return &set->base;
 }
