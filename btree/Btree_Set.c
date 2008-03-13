@@ -43,6 +43,7 @@
 typedef struct Btree_Set
 {
     Set     base;
+
     int     fd;             /* Descriptor of file backing the set */
     size_t  pagesize;       /* Size of data pages */
     int     pages;          /* Number of pages */
@@ -183,23 +184,6 @@ static PageEntry *make_entry(
     return entry;
 }
 
-/* Lexicographical comparison. */
-static int cmp(const void *d1, size_t s1, const void *d2, size_t s2)
-{
-    int dif;
-
-    dif = memcmp(d1, d2, s1 < s2 ? s1 : s2);
-    if (dif == 0)
-    {
-        if (s1 < s2)
-            dif = -1;
-        else
-        if (s1 > s2)
-            dif = +1;
-    }
-    return dif;
-}
-
 /* Inserts an entry into a page.
    The 'entry' should be dynamically allocated, and is freed by this function.
    If the page has to be split, a new entry is returned, that is to be inserted
@@ -303,7 +287,8 @@ static PageEntry *find_or_insert_page( Btree_Set *set, int pageno,
         int d, mid;
 
         mid = (n + m)/2;
-        d = cmp(page + BEGIN(page, mid), SIZE(page, mid), key_data, key_size);
+        d = set->base.compare( set->base.context,
+            page + BEGIN(page, mid), SIZE(page, mid), key_data, key_size );
 
         if (d < 0)
         {
@@ -430,9 +415,13 @@ Set *Btree_Set_create(const char *filepath, size_t pagesize)
         return NULL;
     }
 
+    set->base.context  = NULL;
     set->base.destroy  = (void*)set_destroy;
     set->base.insert   = (void*)set_insert;
     set->base.contains = (void*)set_contains;
+    set->base.compare  = default_compare;
+    set->base.hash     = NULL;
+
     set->fd       = fd;
     set->pagesize = pagesize;
     set->pages    = 1;
