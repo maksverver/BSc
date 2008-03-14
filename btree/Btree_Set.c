@@ -1,12 +1,13 @@
 #include "Set.h"
 #include <assert.h>
+#include <fcntl.h>
 #include <stdio.h>
 #include <stdbool.h>
 #include <string.h>
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <fcntl.h>
+#include <sys/mman.h>
 
 /* Page lay-out:
 
@@ -32,7 +33,8 @@
 */
 
 /* Note: these macros assume 'set' is in scope */
-#define IDX(p)          ((int*)((char*)p + set->pagesize))
+#define DATA(index)     (set->data + (index)*set->pagesize)
+#define IDX(p)          ((int*)(DATA(p) + set->pagesize))
 #define COUNT(p)        (IDX(p)[-1])          /* number of values in page */
 #define BEGIN(p, i)     (IDX(p)[-2*(i)-2])    /* offset to start of i-th value */
 #define CHILD(p, i)     (IDX(p)[-2*(i)-3])    /* index of i-th child page */
@@ -49,10 +51,12 @@ typedef struct Btree_Set
     int     pages;          /* Number of pages */
     int     root;           /* Index of root page */
 
+    char    *data;          /* Contents of backing file */
+
     /* Temporary memory pool */
+    char    *mem;           /* Allocated memory pool */
     size_t  mem_size;       /* Total amount of memory allocated */
     size_t  mem_used;       /* Memory used (set to zero before each operation) */
-    char    *mem;           /* Allocated memory pool */
 } Btree_Set;
 
 typedef struct PageEntry
@@ -64,7 +68,7 @@ typedef struct PageEntry
 
 /* Prints the contents of the given page in a human-readable format.
    Useful for debugging. */
-static void debug_print_page(Btree_Set *set, char *page, FILE *fp)
+static void debug_print_page(Btree_Set *set, int page, FILE *fp)
 {
     int n, N;
 
@@ -90,8 +94,8 @@ static void debug_print_page(Btree_Set *set, char *page, FILE *fp)
                     putc(' ', fp);
             }
         }
-        putc("0123456789ABCDEF"[(((char*)page)[n]>>4)&15], fp);
-        putc("0123456789ABCDEF"[(((char*)page)[n]>>0)&15], fp);
+        putc("0123456789ABCDEF"[(DATA(page)[n]>>4)&15], fp);
+        putc("0123456789ABCDEF"[(DATA(page)[n]>>0)&15], fp);
     }
     putc('\n', fp);
     fprintf(fp, "----\n");
@@ -113,60 +117,28 @@ static void *alloc_mem(Btree_Set *set, size_t size)
     return data;
 }
 
-/* Allocates a new page from the reserved space.
-   This page must not be freed by the caller. */
-static void *alloc_page(Btree_Set *set)
-{
-    return alloc_mem(set, set->pagesize);
-}
-
-/* Reads a page with the given index.
-   The returned page must be freed by the caller. */
-static void *read_page(Btree_Set *set, int index)
-{
-    int res;
-    void *page;
-
-    /* Seek to page offset */
-    assert(index >= 0);
-    res = lseek(set->fd, (off_t)index*set->pagesize, SEEK_SET);
-    assert(res >= 0);
-
-    /* Read page */
-    page = alloc_page(set);
-    res = read(set->fd, page, set->pagesize);
-    assert(res == set->pagesize);
-
-    /* fprintf(stderr, "Read page %d\n", index);
-    debug_print_page(set, page, stderr); */
-
-    return page;
-}
-
-/* Writes a page with the given index. */
-static void write_page(Btree_Set *set, void *page, int index)
-{
-    int res;
-
-    /* Seek to page offset */
-    assert(index >= 0);
-    res = lseek(set->fd, (off_t)index*set->pagesize, SEEK_SET);
-    assert(res >= 0);
-
-    /* Write page */
-    res = write(set->fd, page, set->pagesize);
-    assert(res == set->pagesize);
-
-    /* fprintf(stderr, "Write page %d\n", index);
-    debug_print_page(set, page, stderr); */
-}
-
 /* Destroys a set data structure, by closing the backing file
    and freeing all associated resources. */
 static void set_destroy(Btree_Set *set)
 {
     close(set->fd);
     free(set);
+}
+
+/* Allocates a new page and returns its index. */
+static int create_page(Btree_Set *set)
+{
+    int page;
+
+    if (set->data != NULL)
+        munmap(set->data, set->pages*set->pagesize);
+    page = set->pages++;
+    set->data = mmap( NULL, set->pages*set->pagesize,
+                      PROT_READ|PROT_WRITE, 0, set->fd, 0 );
+    perror(NULL);
+    assert(set->data != NULL && set->data != MAP_FAILED);
+
+    return page;
 }
 
 /* Creates an entry to be inserted in a page, consisting of a value
@@ -189,7 +161,7 @@ static PageEntry *make_entry(
    If the page has to be split, a new entry is returned, that is to be inserted
    in the parent page; this entry must be freed by the caller. */
 static PageEntry *insert_entry( Btree_Set *set,
-    char *page, int pos, PageEntry *entry )
+    int page, int pos, PageEntry *entry )
 {
     PageEntry *result;
     int N, size;
@@ -208,12 +180,12 @@ static PageEntry *insert_entry( Btree_Set *set,
 
         /* Insert value at position 'pos' */
         k = BEGIN(page, pos);
-        memmove(page + k + entry->size, page + k, size - k);
-        memcpy(page + k, entry->data, entry->size);
+        memmove(DATA(page) + k + entry->size, DATA(page) + k, size - k);
+        memcpy(DATA(page) + k, entry->data, entry->size);
 
         /* Update index */
-        memmove( page + set->pagesize - ISIZE(N) - 2*sizeof(int),
-                 page + set->pagesize - ISIZE(N), (N - pos)*2*sizeof(int) );
+        memmove( DATA(page) + set->pagesize - ISIZE(N) - 2*sizeof(int),
+                 DATA(page) + set->pagesize - ISIZE(N), (N - pos)*2*sizeof(int) );
         CHILD(page, pos + 1) = entry->child;
         END(page, pos) = k + entry->size;
         while (++pos <= N)
@@ -223,28 +195,27 @@ static PageEntry *insert_entry( Btree_Set *set,
     else
     {
         /* Split required */
-        int n, k;
-        char *new_page;
+        int n, k, new_page;
 
         /* For now, just split in the middle.
            This works because we require all keys to be less than 1/4th of a
            page (minus the required index size) so no matter how we split, we
            can always insert the new element in either of the two new pages. */
         k = N/2;
+        new_page = create_page(set);
 
         /* Take out middle page */
-        result = make_entry(set, SIZE(page, k), set->pages++, page + BEGIN(page, k));
+        result = make_entry(set, SIZE(page, k), new_page, DATA(page) + BEGIN(page, k));
         COUNT(page) = k;
 
         /* Create new page */
         /* NB. This uses some knowledge of the page lay-out */
-        new_page = alloc_page(set);
-        memset(new_page, 0, set->pagesize); /* for debugging */
+        memset(DATA(new_page), 0, set->pagesize); /* for debugging */
         COUNT(new_page) = N - (k + 1);
-        memcpy(new_page, page + BEGIN(page, k + 1),
+        memcpy(DATA(new_page), DATA(page) + BEGIN(page, k + 1),
                END(page, N - 1) - BEGIN(page, k + 1));
-        memcpy(new_page + set->pagesize - ISIZE(N - (k + 1)),
-               page - ISIZE(N), 2*sizeof(int)*(N - (k + 1)));
+        memcpy(DATA(new_page) + set->pagesize - ISIZE(N - (k + 1)),
+               DATA(page) - ISIZE(N), 2*sizeof(int)*(N - (k + 1)));
         BEGIN(new_page, 0) = 0;
         for (n = k + 1; n < N; ++n)
             END(new_page, n - (k + 1)) = END(page, n) - BEGIN(page, k + 1);
@@ -252,8 +223,8 @@ static PageEntry *insert_entry( Btree_Set *set,
             CHILD(new_page, n - (k + 1)) = CHILD(page, n);
 
         /* To make debugging easier, set freed space to zero. */
-        memset(page + BEGIN(page, k), 0, END(page, N-1) - BEGIN(page, k));
-        memset(page + set->pagesize - ISIZE(N), 0, 2*sizeof(int)*(N -k));
+        memset(DATA(page) + BEGIN(page, k), 0, END(page, N-1) - BEGIN(page, k));
+        memset(DATA(page) + set->pagesize - ISIZE(N), 0, 2*sizeof(int)*(N -k));
 
         /* NB. insert_entry() will return NULL here, since we have ensured
                enough space is available to insert the entry. */
@@ -261,22 +232,17 @@ static PageEntry *insert_entry( Btree_Set *set,
             insert_entry(set, page, pos, entry);
         else
             insert_entry(set, new_page, pos - k - 1, entry);
-
-        /* Write out newly created page. */
-        write_page(set, new_page, result->child);
     }
 
     return result;
 }
 
-static PageEntry *find_or_insert_page( Btree_Set *set, int pageno,
+static PageEntry *find_or_insert_page( Btree_Set *set, int page,
     const void *key_data, size_t key_size, bool *found )
 {
-    char *page;
     int N, n, m, child;
     PageEntry *entry;
 
-    page = read_page(set, pageno);
     N = COUNT(page);
 
     /* Binary search for first element larger than key. */
@@ -288,7 +254,7 @@ static PageEntry *find_or_insert_page( Btree_Set *set, int pageno,
 
         mid = (n + m)/2;
         d = set->base.compare( set->base.context,
-            page + BEGIN(page, mid), SIZE(page, mid), key_data, key_size );
+            DATA(page) + BEGIN(page, mid), SIZE(page, mid), key_data, key_size );
 
         if (d < 0)
         {
@@ -334,7 +300,6 @@ static PageEntry *find_or_insert_page( Btree_Set *set, int pageno,
     {
         /* We must insert the given entry in this page at index n */
         entry = insert_entry(set, page, n, entry);
-        write_page(set, page, pageno);
     }
 
     return entry;
@@ -352,18 +317,14 @@ static bool find_or_insert( Btree_Set *set,
     if (entry != NULL)
     {
         /* New root page must be created */
-        char *page;
-
-        page = alloc_page(set);
-        memset(page, 0, set->pagesize); /* for debugging */
+        int page = create_page(set);
+        memset(DATA(page), 0, set->pagesize); /* for debugging */
         COUNT(page) = 1;
         BEGIN(page, 0) = 0;
         END(page, 0) = entry->size;
-        memcpy(page, entry->data, entry->size);
+        memcpy(DATA(page), entry->data, entry->size);
         CHILD(page, 0) = set->root;
         CHILD(page, 1) = entry->child;
-        write_page(set, page, set->pages);
-        set->root = set->pages++;
     }
 
     return found;
@@ -386,7 +347,6 @@ Set *Btree_Set_create(const char *filepath, size_t pagesize)
 {
     Btree_Set *set;
     int fd;
-    char *page;
     char *mem;
     size_t mem_size;
 
@@ -422,21 +382,23 @@ Set *Btree_Set_create(const char *filepath, size_t pagesize)
     set->base.compare  = default_compare;
     set->base.hash     = NULL;
 
+    /* TODO: mmap pages */
+
     set->fd       = fd;
     set->pagesize = pagesize;
-    set->pages    = 1;
+    set->pages    = 0;
     set->root     = 0;
+    set->data     = NULL;
+    set->mem      = mem;
     set->mem_size = mem_size;
     set->mem_used = 0;
-    set->mem      = mem;
 
     /* Create root page. */
-    page = alloc_page(set);
-    memset(page, 0, set->pagesize); /* for debugging */
-    COUNT(page)    = 0;
-    BEGIN(page, 0) = 0;
-    CHILD(page, 0) = -1;
-    write_page(set, page, 0);
+    create_page(set);
+    memset(DATA(0), 0, set->pagesize); /* for debugging */
+    COUNT(0)    = 0;
+    BEGIN(0, 0) = 0;
+    CHILD(0, 0) = -1;
 
     return &set->base;
 }
