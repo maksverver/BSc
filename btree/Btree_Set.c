@@ -127,14 +127,17 @@ static void set_destroy(Btree_Set *set)
 /* Allocates a new page and returns its index. */
 static int create_page(Btree_Set *set)
 {
-    int page;
+    int page, res;
 
     if (set->data != NULL)
         munmap(set->data, set->pages*set->pagesize);
+
     page = set->pages++;
-    set->data = mmap( NULL, set->pages*set->pagesize,
-                      PROT_READ|PROT_WRITE, 0, set->fd, 0 );
-    perror(NULL);
+    res = ftruncate(set->fd, set->pages*set->pagesize);
+    assert(res == 0);
+
+    set->data = mmap( NULL, set->pages*set->pagesize, PROT_READ|PROT_WRITE,
+                      MAP_SHARED, set->fd, 0 );
     assert(set->data != NULL && set->data != MAP_FAILED);
 
     return page;
@@ -226,7 +229,6 @@ static PageEntry *insert_entry( Btree_Set *set,
 
         /* Create new page */
         /* NB. This uses some knowledge of the page lay-out */
-        memset(DATA(new_page), 0, set->pagesize); /* for debugging */
         COUNT(new_page) = N - (k + 1);
         memcpy(DATA(new_page), DATA(page) + BEGIN(page, k + 1),
                END(page, N - 1) - BEGIN(page, k + 1));
@@ -333,13 +335,13 @@ static bool find_or_insert( Btree_Set *set,
     {
         /* New root page must be created */
         int page = create_page(set);
-        memset(DATA(page), 0, set->pagesize); /* for debugging */
         COUNT(page) = 1;
         BEGIN(page, 0) = 0;
         END(page, 0) = entry->size;
         memcpy(DATA(page), entry->data, entry->size);
         CHILD(page, 0) = set->root;
         CHILD(page, 1) = entry->child;
+        set->root = page;
     }
 
     return found;
@@ -380,9 +382,9 @@ Set *Btree_Set_create(const char *filepath, size_t pagesize)
     if (set == NULL)
         return NULL;
 
-    /* Temporary memory is needed to fetch pages and to copy entries, so an
-       upper bound is: 2*H*pagesize, where H is the maximum height of the B-tree. */
-    mem_size = 2*20*pagesize;
+    /* Temporary memory is needed to copy entries, so an upper bound is:
+       H*pagesize/4, where H is the maximum height of the B-tree. */
+    mem_size = 32*pagesize/4;
     mem = malloc(mem_size);
     if (mem == NULL)
     {
@@ -404,7 +406,6 @@ Set *Btree_Set_create(const char *filepath, size_t pagesize)
 
     /* Create root page. */
     create_page(set);
-    memset(DATA(0), 0, set->pagesize); /* for debugging */
     COUNT(0)    = 0;
     BEGIN(0, 0) = 0;
     CHILD(0, 0) = -1;
