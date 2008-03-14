@@ -1,3 +1,4 @@
+#include "config.h"
 #include "Set.h"
 #include <assert.h>
 #include <fcntl.h>
@@ -128,16 +129,29 @@ static void set_destroy(Btree_Set *set)
 static int create_page(Btree_Set *set)
 {
     int page, res;
+    size_t old_size, new_size;
 
-    if (set->data != NULL)
-        munmap(set->data, set->pages*set->pagesize);
+    old_size = set->pages*set->pagesize;
+    new_size = old_size + set->pagesize;
 
     page = set->pages++;
-    res = ftruncate(set->fd, set->pages*set->pagesize);
+
+    res = ftruncate(set->fd, new_size);
     assert(res == 0);
 
-    set->data = mmap( NULL, set->pages*set->pagesize, PROT_READ|PROT_WRITE,
-                      MAP_SHARED, set->fd, 0 );
+    if (HAVE_MREMAP && set->data != NULL)
+    {
+        set->data = mremap(set->data, old_size, new_size, MREMAP_MAYMOVE);
+    }
+    else
+    {
+        if (set->data != NULL)
+            munmap(set->data, old_size);
+
+        set->data = mmap( NULL, new_size, PROT_READ|PROT_WRITE, MAP_SHARED,
+	                  set->fd, 0 );
+    }
+
     assert(set->data != NULL && set->data != MAP_FAILED);
 
     return page;
