@@ -32,4 +32,9 @@ Set *BDB_Hash_Set_create(const char *filepath);
 /* Creates a set data structure backed by a custom B-tree implementation. */
 Set *Btree_Set_create(const char *filepath, size_t pagesize);
 
+/* Creates a set data structure backed by a custom hash table implementation.
+   The capacity parameter is the capacity of the hash table index (i.e. the
+   number of buckets) which is fixed for the set (no resizing possible). */
+Set *Hash_Set_create(const char *filepath, size_t capacity);
+
 #endif /* ndef SET_H_INCLUDED */

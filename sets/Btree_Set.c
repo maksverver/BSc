@@ -121,6 +121,9 @@ static void *alloc_mem(Btree_Set *set, size_t size)
    and freeing all associated resources. */
 static void set_destroy(Btree_Set *set)
 {
+    if (set->data != NULL)
+        munmap(set->data, set->pages*set->pagesize);
+    free(set->mem);
     close(set->fd);
     free(set);
 }
