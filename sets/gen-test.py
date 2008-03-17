@@ -14,7 +14,7 @@ while len(ls) < N:
     ls.append(s)
 
 # Output a bunch of random queries
-for _ in range(2*N):
+for _ in range(4*N):
     s = ls[rnd.randint(0,len(ls)-1)]
     if rnd.randint(0,1):
         print s

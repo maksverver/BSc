@@ -34,9 +34,8 @@ Mathematics and Computer Science}
 
 \maketitle
 
-% TODO: abstract
+% TODO: abstract?
 %\begin{abstract}
-%The cache-oblivious memory model is a model that allows algorithms and data structures to be evaluated in terms of memory transfers in a two-level memory hierarchy. Efficient data structurs and algorithms that operate on them are of interest because they are used in more complex, domain-specific algorithms.  This proposal suggests that emperical evidence is necessary to determine wether cache-oblivious data structures that have been described previously, perform well enough in practice so that they may replace traditional data structures.
 %\end{abstract}
 
 \keywords{cache efficiency, locality of reference, algorithms}
@@ -50,7 +49,7 @@ This model is close enough to the way computers work to be extremely useful in t
 
 One of the reasons this assumption fails is that modern operating systems employ virtual memory management, which allows (slower) disk-based storage to be dynamically substituted for (faster) main memory when the latter is in short supply. Another is that as processor speeds have increased greatly, the time required to transfer data between processor and main memory has become a bottleneck for many types of computations. Hardware architects have added faster (but small) cache memory at various points in the computer architecture to reduce this problem, but this increases the differences in access time between different types of memory.
 
-It should be clear by now that a modern computer system lacks a single, central memory storage. Instead, there is a hierarchy of memory storage types, including at least the processor registers, L1/L2 cache, main memory and disk storage. At each of these levels, the next storage type is both significantly faster and significantly larger than the previous type. Typically, the processor can directly manipulate data contained in its registers only. To access data in a lower level in the memory hierarchy, the data must be transfered upward through the memory hierarchy. Memory is transfered in blocks of data of a fixed size (although bulk transfers involving multiple blocks of data at once are also supported at the memory and disk level).
+It should be clear by now that a modern computer system lacks a single, central memory storage. Instead, there is a hierarchy of memory storage types, including at least the processor registers, L1/L2 cache, main memory and disk storage. At each of these levels, the next storage type is both significantly slower and significantly larger than the previous type. Typically, the processor can directly manipulate data contained in its registers only. To access data in a lower level in the memory hierarchy, the data must be transfered upward through the memory hierarchy. Memory is transfered in blocks of data of a fixed size (although bulk transfers involving multiple blocks of data at once are also supported at the memory and disk level).
 
 % TODO: add picture of memory hierarchy
 
@@ -94,9 +93,9 @@ Vitter presents a theoretical survey of algorithms evaluated in a parallel disk 
 As described above, several cache-oblivious data structures and algorithms have been proposed. Complexity analysis shows that the proposed solutions are asymptotically optimal. However, in software engineering practice we are not only interested in computational complexity, but also in the practical performance of data structures and algorithms. Indeed, many algorithms that have suboptimal computational complexity are actually widely used because they perform well in practice (for example, sorting algorithms like Quicksort and Shell sort).
 %The converse is true as well: some algorithms that are better than widely used alternatives in terms of computational complexity have bad performance on practical data sets, use too much memory, or are too hard to implement correctly (for example, linear time construction of suffix arrays).
 
-This raises the question whether cache-oblivious data structures are actually preferable to traditional data structures in practice. The theory suggests that cache-oblivious algorithms should perform well, but this can only be confirmed by evaluating their performance in a realistic environment and operating on a realistic data set. However, such empirical data is scarce when it comes to cache-oblivious data structures, as existing research has focused mainly on theoretical analysis. The goal of the proposed research project is to perform an empirical evaluation of previously described cache-oblivious data structures and compare them with their traditional counterparts (both cache-aware and cache-unaware data structures).
+This raises the question whether cache-oblivious data structures are actually preferable to traditional data structures in practice. These data structures are designed to perform optimally in a model that was designed to more accurately reflect reality, which suggests they should perform well, but this can only be confirmed by evaluating their performance in a realistic environment and operating on a realistic data set. However, such empirical data is scarce, as existing research has focused mainly on theoretical analysis. The goal of the proposed research project is to perform an empirical evaluation of previously described cache-oblivious data structures and compare them with their traditional counterparts (both cache-aware and cache-unaware data structures).
 
-From the application programmer's point of view, data structures and algorithms can be grouped together based on the functionality they provide. For example, all comparison-based sorting algorithms can be considered to provide equivalent functionality, even if their performance is different. Since it is not sensible to compare data structures which provide different functionality, it is necessary to limit the scope of the project to data structures that provide similar functions. As will described below, we will limit ourselves to one particular kind of data structures, in the hope that our results may give some insight in the performance of cache-oblivious data structures in general.
+From the application programmer's point of view, data structures and algorithms can be grouped together based on the functionality they provide. For example, all comparison-based sorting algorithms can be considered to provide equivalent functionality, even if their performance is different. Since it is not sensible to compare data structures which provide different functionality, it is necessary to limit the scope of the project to data structures that provide similar functions. As will be described below, we will limit ourselves to one particular kind of data structures, in the hope that our results may give some insight in the performance of cache-oblivious data structures in general.
 
 \subsection{Research Questions}
 Following from the above, the main question to be answered is:
@@ -104,24 +103,17 @@ Following from the above, the main question to be answered is:
 \item Do cache-oblivious data structures have practical merit?
 \end{list}
 
-More specifically, these questions will be answered:
+Because we are primarily interested in practical performance, actual execution time is the most important metric. Memory use is of interest as well (if only as a secondary criterion) as it may reveal that there is a trade-off between memory use and execution time of data structures. That means that the main question will be answered by first addressing the following questions:
 \newcounter{cnt}
 \begin{list}{\arabic{cnt}.}{\usecounter{cnt}}
-\item How do cache-oblivious data structures perform when compared to cache-aware data structures?
-\item How do cache-oblivious data structures perform when compared to cache-unaware data structures?
-\item How does the memory use of cache-oblivious data structures relate to the memory used by other data structures?
+\item How fast are cache-oblivious data structures when compared to cache-aware data structures?
+\item How fast are cache-oblivious data structures when compared to cache-unaware data structures?
+\item How much memory do cache-oblivious data structures use compared to other data structures?
 \end{list}
-Because we are primarily interested in practical performance, the measure of performance will be the actual run-time of the experiments. Memory use is of interest as well (if only as a secondary criterion) as it may reveal that there is a trade-off between memory use and execution time of data structures.
+These questions can be answered by implementing the relevant data structures and measuring their practical performance on a realistic data set.
 
 \section{Research Approach}
-
-% To add:
-% - language of implementation
-% - platform used
-% - data used
-% - how to test
-
-The goal of the project is to evaluate a variety of data structures in a practical setting. For this, we need a realistic scenario that makes heavy use of data structures of which cache-oblivious implementations are available. A scenario that suits these needs, is that of a state space search algorithm (or, in short: state search). The purpose of such an algorithm is to find an optimal path from a (set of) given initial state(s) to a goal state. State search algorithms are often used to solve reachability problems, which occur for example in formal model checking. The main data structures used are a queue (either a regular queue or, if search heuristics are used, a priority queue) and a dynamic set. An example of a simple state search algorithm is given in program \ref{prog-search}.
+The goal of the project is to evaluate a variety of data structures in a practical setting. For this, we need a realistic scenario that makes heavy use of data structures of which cache-oblivious implementations are available. A scenario that suits these needs, is that of a state space search algorithm (or, in short: state search). The purpose of such an algorithm is to find an optimal path from a (set of) given initial state(s) to a goal state. State search algorithms are often used to solve reachability problems, which occur for example in formal model checking. In a simple implementation, such as given in program \ref{prog-search}, the main data structures used are a queue and a dynamic set.
 
 \begin{program}
 \begin{verbatim}
@@ -145,12 +137,12 @@ while (!queue.empty()) {
 
 In this program, a queue is a data structure where elements can be inserted and extracted on a first-in-first-out basis. A dynamic set is a data structure that models a set to which elements may be added (and optionally, from which they may be removed) and which may be queried to see if the set contains a particular element.
 
-Since implementing a normal queue is fairly straightforward, the execution time of the algorithm will be dominated by the performance of the set, assuming domain-specific functions (like \verb#successors# and \verb#isGoal# in the sample code) are efficient. The main focus of the research project will therefore be on alternative implementations of the set data structure.
+Since implementing a normal queue is fairly straightforward, the execution time of the algorithm will be dominated by the performance of the set, assuming domain-specific functions (like \verb#successors# and \verb#isGoal# in the sample code) are efficient enough not to dominate the performance of the algorithm. The main focus of the research project will therefore be on alternative implementations of the set data structure.
 
 %The situation changes, of course, when instead of a first-in-first-out queue a priority queue is used. This is often the case when we are searching for a shortest path (instead of any path that reaches the goal) or when heuristics are used in the search. In this case, the complexity of the queue implementation increases. If time allows it, the project could be extended to evaluating different implementations of priority queues as well.
 
 \subsection{Set Operations}
-A minimal set data structure should be able to determine whether or not a given element is a member of the set. A dynamic set differs from a static set in that it supports operations to add and/or remove elements from the set dynamically. In our experiments, we will start out with an empty set and only allow for insertion of new elements. This means the our dynamic set must support two basic operations:
+At a minimum, a set data structure should be able to determine whether or not a given element is a member of the set. A dynamic set differs from a static set in that it supports operations to add and/or remove elements from the set dynamically. In our experiments, we will start out with an empty set and only allow for insertion of new elements. This means the our dynamic set must support two basic operations:
 \begin{itemize}
 \item \verb#insert(S,X)# -- Inserts $X$ into set $S$, if it is not yet present.
 \item \verb#contains(S,X)# -- Returns whether set $S$ contains $X$.
@@ -171,7 +163,6 @@ The cache-oblivious data structures have been developed recently and are not com
 In an attempt to reduce the bias caused by differences in functionality and quality between existing and newly developed libraries, all data structures used in the performance evaluation will be implemented from scratch.
 
 \subsection{Measurement}
-% TODO: which hardware and software platform used, et cetera. Do we discuss this?
 As described in the problem statement, the main metric of interest is the total execution time of our algorithm. To be able to quantify the obtained results, we also need to be able to estimate the overhead incurred by the use of our testing framework and other outside influences. Two methods will be employed:
 \begin{itemize}
 \item Profiling tools such as OProfile \cite{oprofile} can be used to determine which part of the execution time was spent executing the testing framework, with a small overhead during execution.
