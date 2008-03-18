@@ -106,7 +106,7 @@ static void resize(Hash_Set *set, size_t size)
     assert(res == 0);
 
     /* Unlock memory */
-    if (set->data != NULL)
+    if (HAVE_MLOCK && USE_MLOCK && set->data != NULL)
     {
         res = munlock(set->data, set->capacity*sizeof(size_t));
         assert(res == 0);
@@ -131,8 +131,12 @@ static void resize(Hash_Set *set, size_t size)
     set->data_left = new_size - size;
 
     /* Lock index into memory */
-    res = mlock(set->data, set->capacity*sizeof(size_t));
-    assert(res == 0);
+    if (HAVE_MLOCK && USE_MLOCK)
+    {
+        assert(set->capacity*sizeof(size_t) <= new_size);
+        res = mlock(set->data, set->capacity*sizeof(size_t));
+        assert(res == 0);
+    }
 }
 
 static bool find_or_insert( Hash_Set *set, const void *key_data, size_t key_size,
