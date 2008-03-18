@@ -39,7 +39,8 @@ typedef struct Hash_Set
     size_t  capacity;       /* Index capacity (number of buckets) */
 
     char    *data;          /* Contents of backing file */
-    size_t  data_size;      /* Size of backing file */
+    size_t  data_size;      /* Size of data used in the backing file */
+    size_t  data_left;      /* Unallocated space left in backing file */
 } Hash_Set;
 
 
@@ -78,27 +79,60 @@ static void debug_print_data(Hash_Set *set, FILE *fp)
 
 /* Resize the data file to the given size.
    NB. This invalidates pointers to set->data! */
-static void resize(Hash_Set *set, size_t new_size)
+static void resize(Hash_Set *set, size_t size)
 {
     int res;
+    size_t old_size, new_size;
+    long page_size;
 
+    if (size < set->data_size || size - set->data_size <= set->data_left)
+    {
+        /* We have unallocated space left; use that instead of reallocating. */
+        set->data_left -= size - set->data_size;
+        set->data_size = size;
+        return;
+    }
+
+    /* Round desired size up to the next page boundary. */
+    page_size = sysconf(_SC_PAGESIZE);
+    assert(page_size > 0);
+    old_size = set->data_size + set->data_left;
+    new_size = size;
+    if (new_size%page_size != 0)
+        new_size += page_size - new_size%page_size;
+
+    /* Change file size */
     res = ftruncate(set->fd, new_size);
     assert(res == 0);
 
+    /* Unlock memory */
+    if (set->data != NULL)
+    {
+        res = munlock(set->data, set->capacity*sizeof(size_t));
+        assert(res == 0);
+    }
+
+    /* Remap memory */
     if (HAVE_MREMAP && set->data != NULL)
     {
-        set->data = mremap(set->data, set->data_size, new_size, MREMAP_MAYMOVE);
+        set->data = mremap(set->data, old_size, new_size, MREMAP_MAYMOVE);
     }
     else
     {
         if (set->data != NULL)
-            munmap(set->data, set->data_size);
+            munmap(set->data, old_size);
 
         set->data = mmap( NULL, new_size, PROT_READ|PROT_WRITE, MAP_SHARED,
                       set->fd, 0 );
     }
     assert(set->data != NULL && set->data != MAP_FAILED);
-    set->data_size = new_size;
+
+    set->data_size = size;
+    set->data_left = new_size - size;
+
+    /* Lock index into memory */
+    res = mlock(set->data, set->capacity*sizeof(size_t));
+    assert(res == 0);
 }
 
 static bool find_or_insert( Hash_Set *set, const void *key_data, size_t key_size,
