@@ -690,7 +690,7 @@
 \newtoks\tntoksfour
 \newtoks\tntoksfive
 
-\def\
+\def\abstract
 {
 \ifnum\titlenotecount>0 % was =1
     \insert\footins{%
