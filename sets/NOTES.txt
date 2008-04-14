@@ -1,0 +1,2 @@
+ - User-supplied comparison and hash functions are ignored for the BerkeleyDB
+   based set implementations.

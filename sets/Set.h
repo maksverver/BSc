@@ -4,6 +4,13 @@
 #include <stdbool.h>
 #include <stdlib.h>
 
+typedef struct Set Set;
+
+/* Creates a set data structure from a string description */
+/* Set *Set_create_from_string(const char *descr); */
+Set *Set_create_from_args(int argc, const char * const *argv);
+
+
 /* Defines the basic operations on a set data structure.
 
 The "context" field may be set to a specific value by the application.
@@ -29,7 +36,7 @@ unsigned hash(const void *context, const void *key_data, size_t key_size)
     Computes a hash value for the given key.
 
 */
-typedef struct Set {
+struct Set {
     void *context;
 
     /* These functions are set by the constructor */
@@ -40,7 +47,7 @@ typedef struct Set {
     /* These functions may be overridden by the caller */
     int (*compare)(const void *, const void *, size_t, const void *, size_t);
     unsigned (*hash)(const void *, const void *, size_t);
-} Set;
+};
 
 /* Creates a set data structure backed by a BerkeleyDB B-tree. */
 Set *BDB_Btree_Set_create(const char *filepath);
@@ -50,6 +57,10 @@ Set *BDB_Hash_Set_create(const char *filepath);
 
 /* Creates a set data structure backed by a custom B-tree implementation. */
 Set *Btree_Set_create(const char *filepath, size_t pagesize);
+
+/* Creates a set data structure backed by a custom hash table implementation. */
+Set *Hash_Set_create(const char *filepath, size_t capacity);
+
 
 /* Default comparison function */
 int default_compare( const void *ignored,
