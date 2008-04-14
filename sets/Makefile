@@ -2,16 +2,19 @@ CFLAGS=-I/usr/include/db1 -Wall -g -O0
 LDLIBS=-ldb-4.5
 OBJECTS=Set.o BDB_Set.o Btree_Set.o Hash_Set.o comparison.o hashing.o
 
-all: test
+all: test sets.a
 
-test: $(OBJECTS) test.o
-	$(CC) $(LDFLAGS) -o "$@" $(OBJECTS) test.o $(LDLIBS)
+sets.a: $(OBJECTS)
+	$(AR) rcs "$@" $(OBJECTS)
+
+test: sets.a
+	$(CC) $(LDFLAGS) -o "$@" test.c sets.a $(LDLIBS)
 
 clean:
-	rm -f $(OBJECTS) test.o
+	rm -f $(OBJECTS)
 
 distclean: clean
-	rm -f test
+	rm -f test sets.a
 
 .PHONY: clean all
 
