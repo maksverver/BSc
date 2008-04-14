@@ -40,9 +40,9 @@ struct Set {
     void *context;
 
     /* These functions are set by the constructor */
-    void (*destroy)(struct Set *);
-    bool (*insert)(struct Set *, const void *, size_t);
-    bool (*contains)(struct Set *, const void *, size_t);
+    void (*destroy)(Set *);
+    bool (*insert)(Set *, const void *, size_t);
+    bool (*contains)(Set *, const void *, size_t);
 
     /* These functions may be overridden by the caller */
     int (*compare)(const void *, const void *, size_t, const void *, size_t);

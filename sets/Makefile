@@ -16,5 +16,5 @@ clean:
 distclean: clean
 	rm -f test sets.a
 
-.PHONY: clean all
+.PHONY: all clean distclean
 

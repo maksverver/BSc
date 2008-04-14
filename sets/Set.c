@@ -5,11 +5,9 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-#define SET_BTREE        1
-#define SET_HASH         2
-#define SET_BDB          3
-#define SET_BDB_HASH     4
-#define SET_BDB_BTREE    5
+typedef enum SetType {
+    Btree, Hash, BDB_Unspecified, BDB_Hash, BDB_Btree
+} SetType;
 
 static const char *make_tempfile()
 {
@@ -53,7 +51,8 @@ static const char *make_tempfile()
 */
 Set *Set_create_from_args(int argc, const char * const *argv)
 {
-    int type, pagesize, capacity, keep;
+    SetType type;
+    int pagesize, capacity, keep;
     char *path;
     Set *result;
 
@@ -66,18 +65,18 @@ Set *Set_create_from_args(int argc, const char * const *argv)
     if (strcmp(*argv, "btree") == 0)
     {
         pagesize = 4096;
-        type = SET_BTREE;
+        type = Btree;
     }
     else
     if (strcmp(*argv, "hash") == 0)
     {
         capacity = 1000000;
-        type = SET_HASH;
+        type = Hash;
     }
     else
     if (strcmp(*argv, "BerkeleyDB") == 0)
     {
-        type = SET_BDB;
+        type = BDB_Unspecified;
     }
     else
     {
@@ -92,27 +91,27 @@ Set *Set_create_from_args(int argc, const char * const *argv)
     {
         if (strcmp(*argv, "btree") == 0)
         {
-            if (type != SET_BDB)
+            if (type != BDB_Unspecified)
                 return NULL;
-            type = SET_BDB_BTREE;
+            type = BDB_Btree;
         }
         else
         if (strcmp(*argv, "hash") == 0)
         {
-            if (type != SET_BDB)
+            if (type != BDB_Unspecified)
                 return NULL;
-            type = SET_BDB_HASH;
+            type = BDB_Hash;
         }
         else
         if (sscanf(*argv, "pagesize=%d", &pagesize) == 1)
         {
-            if (type != SET_BTREE)
+            if (type != Btree)
                 return NULL;
         }
         else
         if (sscanf(*argv, "capacity=%d", &capacity) == 1)
         {
-            if (type != SET_HASH)
+            if (type != Hash)
                 return NULL;
         }
         else
@@ -144,16 +143,16 @@ Set *Set_create_from_args(int argc, const char * const *argv)
 
     switch (type)
     {
-    case SET_BTREE:
+    case Btree:
         result = Btree_Set_create(path, pagesize);
         break;
-    case SET_HASH:
+    case Hash:
         result = Hash_Set_create(path, capacity);
         break;
-    case SET_BDB_BTREE:
+    case BDB_Btree:
         result = BDB_Btree_Set_create(path);
         break;
-    case SET_BDB_HASH:
+    case BDB_Hash:
         result = BDB_Hash_Set_create(path);
         break;
     default:
