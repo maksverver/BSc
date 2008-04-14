@@ -2,7 +2,9 @@
 #include <string.h>
 
 /* Lexicographical comparison. */
-int default_compare(const void *d1, size_t s1, const void *d2, size_t s2)
+int default_compare( const void *ignored,
+                     const void *d1, size_t s1,
+                     const void *d2, size_t s2 )
 {
     int dif;
 

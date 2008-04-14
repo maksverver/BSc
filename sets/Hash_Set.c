@@ -10,12 +10,6 @@
 #include <sys/stat.h>
 #include <sys/mman.h>
 
-/* Defined in hashing.c */
-unsigned default_hash(const void *ignored, const void *data, size_t size);
-
-/* Defined in comparison.c */
-int default_compare(const void *d1, size_t s1, const void *d2, size_t s2);
-
 
 /* Table lay-out (assuming sizeof(size_t) == 8):
 
@@ -146,7 +140,7 @@ static bool find_or_insert( Hash_Set *set, const void *key_data, size_t key_size
     size_t *next;
 
     /* Find initial entry */
-    hash = default_hash(NULL, key_data, key_size);
+    hash = set->base.hash(set->base.context, key_data, key_size);
     next = (size_t*)set->data + hash%set->capacity;
     while (*next != 0)
     {
@@ -158,8 +152,12 @@ static bool find_or_insert( Hash_Set *set, const void *key_data, size_t key_size
 
         size = *(size_t*)(set->data + *next + sizeof(size_t));
         data = set->data + *next + 2*sizeof(size_t);
-        if (default_compare(key_data, key_size, data, size) == 0)
+        if (set->base.compare( set->base.context,
+                               key_data, key_size, data, size ) == 0)
+        {
+            /* item found */
             break;
+        }
 
         next = (size_t*)(set->data + *next);
     }
@@ -239,9 +237,13 @@ Set *Hash_Set_create(const char *filepath, size_t capacity)
     if (set == NULL)
         return NULL;
 
+    set->base.context  = NULL;
     set->base.destroy  = (void*)set_destroy;
     set->base.insert   = (void*)set_insert;
     set->base.contains = (void*)set_contains;
+    set->base.compare  = default_compare;
+    set->base.hash     = default_hash;
+
     set->fd        = fd;
     set->capacity  = capacity;
     set->data      = NULL;

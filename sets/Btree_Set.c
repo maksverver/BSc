@@ -10,10 +10,6 @@
 #include <sys/stat.h>
 #include <sys/mman.h>
 
-/* Defined in comparison.c */
-int default_compare(const void *d1, size_t s1, const void *d2, size_t s2);
-
-
 /* Page lay-out:
 
     |---- 'pagesize' bytes ---|
@@ -275,8 +271,9 @@ static PageEntry *find_or_insert_page( Btree_Set *set, int page,
         int d, mid;
 
         mid = (n + m)/2;
-        d = default_compare( DATA(page) + BEGIN(page, mid), SIZE(page, mid),
-                             key_data, key_size );
+        d = set->base.compare( set->base.context,
+                               DATA(page) + BEGIN(page, mid), SIZE(page, mid),
+                               key_data, key_size );
 
         if (d < 0)
         {
@@ -400,6 +397,8 @@ Set *Btree_Set_create(const char *filepath, size_t pagesize)
     set->base.destroy  = (void*)set_destroy;
     set->base.insert   = (void*)set_insert;
     set->base.contains = (void*)set_contains;
+    set->base.compare  = default_compare;
+
     set->fd       = fd;
     set->pagesize = pagesize;
     set->pages    = 0;

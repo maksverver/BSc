@@ -59,6 +59,8 @@ static Set *BDB_Set_create(const char *filepath, int type)
     set->base.destroy  = (void*)set_destroy;
     set->base.insert   = (void*)set_insert;
     set->base.contains = (void*)set_contains;
+    set->base.compare  = type == DB_BTREE ? default_compare : NULL;
+    set->base.hash     = type == DB_HASH  ? default_hash    : NULL;
     set->db = db;
 
     return &set->base;
