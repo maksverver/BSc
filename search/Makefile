@@ -1,5 +1,5 @@
 CFLAGS=-I.. -Wall -g -O0
-LDLIBS=../nips_vm/libnips_vm.a ../sets/sets.a
+LDLIBS=../nips_vm/libnips_vm.a ../datastructures/datastructures.a
 OBJECTS=main.o search.o
 
 all: search

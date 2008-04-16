@@ -2,8 +2,8 @@
 #define SEARCH_H_INCLUDED
 
 #include <stdbool.h>
-#include "Deque.h"
-#include <sets/Set.h>
+#include <datastructures/Set.h>
+#include <datastructures/Deque.h>
 #include <nips_vm/nipsvm.h>
 #include <nips_vm/bytecode.h>
 

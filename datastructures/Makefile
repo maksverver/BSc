@@ -1,20 +1,20 @@
 CFLAGS=-I/usr/include/db1 -Wall -g -O0
 LDLIBS=-ldb-4.5
-OBJECTS=Set.o BDB_Set.o Btree_Set.o Hash_Set.o comparison.o hashing.o
+OBJECTS=FileStorage.o Set.o BDB_Set.o Btree_Set.o Hash_Set.o comparison.o hashing.o
 
-all: test sets.a
+all: test datastructures.a
 
-sets.a: $(OBJECTS)
+datastructures.a: $(OBJECTS)
 	$(AR) rcs "$@" $(OBJECTS)
 
-test: sets.a
-	$(CC) $(LDFLAGS) -o "$@" test.c sets.a $(LDLIBS)
+test: datastructures.a
+	$(CC) $(LDFLAGS) -o "$@" test.c datastructures.a $(LDLIBS)
 
 clean:
 	rm -f $(OBJECTS)
 
 distclean: clean
-	rm -f test sets.a
+	rm -f test datastructures.a
 
 .PHONY: all clean distclean
 

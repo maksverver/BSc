@@ -1,4 +1,5 @@
 #include "config.h"
+#include "FileStorage.h"
 #include "Set.h"
 #include <assert.h>
 #include <fcntl.h>
@@ -46,12 +47,15 @@
 typedef struct Btree_Set
 {
     Set     base;
-    int     fd;             /* Descriptor of file backing the set */
+
     size_t  pagesize;       /* Size of data pages */
     int     pages;          /* Number of pages */
     int     root;           /* Index of root page */
 
-    char    *data;          /* Contents of backing file */
+    union {
+        char        *data;  /* Contents of backing file */
+        FileStorage fs;     /* File storage (first member is data pointer) */
+    };
 
     /* Temporary memory pool */
     char    *mem;           /* Allocated memory pool */
@@ -121,41 +125,20 @@ static void *alloc_mem(Btree_Set *set, size_t size)
    and freeing all associated resources. */
 static void set_destroy(Btree_Set *set)
 {
-    if (set->data != NULL)
-        munmap(set->data, set->pages*set->pagesize);
+    FS_destroy(&set->fs);
     free(set->mem);
-    close(set->fd);
     free(set);
 }
 
 /* Allocates a new page and returns its index. */
 static int create_page(Btree_Set *set)
 {
-    int page, res;
-    size_t old_size, new_size;
-
-    old_size = set->pages*set->pagesize;
-    new_size = old_size + set->pagesize;
+    bool resized_ok;
+    int page;
 
     page = set->pages++;
-
-    res = ftruncate(set->fd, new_size);
-    assert(res == 0);
-
-    if (HAVE_MREMAP && set->data != NULL)
-    {
-        set->data = mremap(set->data, old_size, new_size, MREMAP_MAYMOVE);
-    }
-    else
-    {
-        if (set->data != NULL)
-            munmap(set->data, old_size);
-
-        set->data = mmap( NULL, new_size, PROT_READ|PROT_WRITE, MAP_SHARED,
-	                  set->fd, 0 );
-    }
-
-    assert(set->data != NULL && set->data != MAP_FAILED);
+    resized_ok = FS_resize(&set->fs, set->pages*set->pagesize);
+    assert(resized_ok);
 
     return page;
 }
@@ -365,7 +348,6 @@ static bool set_contains(Btree_Set *set, const void *key_data, size_t key_size)
 Set *Btree_Set_create(const char *filepath, size_t pagesize)
 {
     Btree_Set *set;
-    int fd;
     char *mem;
     size_t mem_size;
 
@@ -373,11 +355,6 @@ Set *Btree_Set_create(const char *filepath, size_t pagesize)
     assert(pagesize > ISIZE(4));
     assert(pagesize%sizeof(int) == 0);
     assert(pagesize%sizeof(int) == 0);
-
-    /* Open file */
-    fd = open(filepath, O_CREAT | O_RDWR, 0666);
-    if (fd < 0)
-        return NULL;
 
     /* Allocate memory */
     set = malloc(sizeof(Btree_Set));
@@ -399,7 +376,6 @@ Set *Btree_Set_create(const char *filepath, size_t pagesize)
     set->base.contains = (void*)set_contains;
     set->base.compare  = default_compare;
 
-    set->fd       = fd;
     set->pagesize = pagesize;
     set->pages    = 0;
     set->root     = 0;
@@ -407,6 +383,14 @@ Set *Btree_Set_create(const char *filepath, size_t pagesize)
     set->mem      = mem;
     set->mem_size = mem_size;
     set->mem_used = 0;
+
+    /* Open file */
+    if (!FS_create(&set->fs, filepath))
+    {
+        free(mem);
+        free(set);
+        return NULL;
+    }
 
     /* Create root page. */
     create_page(set);
