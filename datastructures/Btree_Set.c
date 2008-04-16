@@ -35,7 +35,7 @@
 */
 
 /* Note: these macros assume 'set' is in scope */
-#define DATA(index)     (set->data + (index)*set->pagesize)
+#define DATA(index)     (set->fs.data + (index)*set->pagesize)
 #define IDX(p)          ((int*)(DATA(p) + set->pagesize))
 #define COUNT(p)        (IDX(p)[-1])          /* number of values in page */
 #define BEGIN(p, i)     (IDX(p)[-2*(i)-2])    /* offset to start of i-th value */
@@ -52,10 +52,7 @@ typedef struct Btree_Set
     int     pages;          /* Number of pages */
     int     root;           /* Index of root page */
 
-    union {
-        char        *data;  /* Contents of backing file */
-        FileStorage fs;     /* File storage (first member is data pointer) */
-    };
+    FileStorage fs;         /* File storage (first member is data pointer) */
 
     /* Temporary memory pool */
     char    *mem;           /* Allocated memory pool */
@@ -379,7 +376,6 @@ Set *Btree_Set_create(const char *filepath, size_t pagesize)
     set->pagesize = pagesize;
     set->pages    = 0;
     set->root     = 0;
-    set->data     = NULL;
     set->mem      = mem;
     set->mem_size = mem_size;
     set->mem_used = 0;

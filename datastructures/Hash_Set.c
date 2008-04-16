@@ -33,11 +33,7 @@ struct Hash_Set
 {
     Set     base;
     size_t  capacity;       /* Index capacity (number of buckets) */
-
-    union {
-        char        *data;  /* Contents of backing file */
-        FileStorage fs;     /* File storage (first member is data pointer) */
-    };
+    FileStorage fs;         /* File storage (first member is data pointer) */
 };
 
 
@@ -50,7 +46,7 @@ static void debug_print_data(Hash_Set *set, FILE *fp)
     fprintf(fp, "Capacity: %d buckets\n", (int)set->capacity);
     for (n = 0; n < set->capacity; ++n)
         fprintf( fp, "Bucket %d: offset %d\n",
-                 (int)n, (int)((size_t*)set->data)[n] );
+                 (int)n, (int)((size_t*)set->fs.data)[n] );
 
     for (n = 0; n < set->fs.size; ++n)
     {
@@ -67,15 +63,15 @@ static void debug_print_data(Hash_Set *set, FILE *fp)
                     putc(' ', fp);
             }
         }
-        putc("0123456789ABCDEF"[(set->data[n]>>4)&15], fp);
-        putc("0123456789ABCDEF"[(set->data[n]>>0)&15], fp);
+        putc("0123456789ABCDEF"[(set->fs.data[n]>>4)&15], fp);
+        putc("0123456789ABCDEF"[(set->fs.data[n]>>0)&15], fp);
     }
     putc('\n', fp);
     fprintf(fp, "----\n");
 }
 
 /* Resize the data file to the given size.
-   NB. This invalidates pointers to set->data! */
+   NB. This invalidates pointers to set->fs.data! */
 static void resize(Hash_Set *set, size_t size)
 {
     int res;
@@ -88,9 +84,9 @@ static void resize(Hash_Set *set, size_t size)
     }
 
     /* Unlock memory */
-    if (HAVE_MLOCK && USE_MLOCK && set->data != NULL)
+    if (HAVE_MLOCK && USE_MLOCK && set->fs.data != NULL)
     {
-        res = munlock(set->data, set->capacity*sizeof(size_t));
+        res = munlock(set->fs.data, set->capacity*sizeof(size_t));
         assert(res == 0);
     }
 
@@ -102,7 +98,7 @@ static void resize(Hash_Set *set, size_t size)
     if (HAVE_MLOCK && USE_MLOCK)
     {
         assert(set->capacity*sizeof(size_t) <= set->fs.capacity);
-        res = mlock(set->data, set->capacity*sizeof(size_t));
+        res = mlock(set->fs.data, set->capacity*sizeof(size_t));
         assert(res == 0);
     }
 }
@@ -115,7 +111,7 @@ static bool find_or_insert( Hash_Set *set, const void *key_data, size_t key_size
 
     /* Find initial entry */
     hash = set->base.hash(set->base.context, key_data, key_size);
-    next = (size_t*)set->data + hash%set->capacity;
+    next = (size_t*)set->fs.data + hash%set->capacity;
     while (*next != 0)
     {
         size_t size;
@@ -125,8 +121,8 @@ static bool find_or_insert( Hash_Set *set, const void *key_data, size_t key_size
         assert(*next >= set->capacity*sizeof(size_t) &&
                *next <= set->fs.size - 2*sizeof(size_t));
 
-        size = *(size_t*)(set->data + *next + sizeof(size_t));
-        data = set->data + *next + 2*sizeof(size_t);
+        size = *(size_t*)(set->fs.data + *next + sizeof(size_t));
+        data = set->fs.data + *next + 2*sizeof(size_t);
         if (set->base.compare( set->base.context,
                                key_data, key_size, data, size ) == 0)
         {
@@ -134,7 +130,7 @@ static bool find_or_insert( Hash_Set *set, const void *key_data, size_t key_size
             break;
         }
 
-        next = (size_t*)(set->data + *next);
+        next = (size_t*)(set->fs.data + *next);
     }
 
     if (*next != 0)
@@ -164,9 +160,9 @@ static bool find_or_insert( Hash_Set *set, const void *key_data, size_t key_size
         resize(set, end);
 
         /* Copy new value */
-        *(size_t*)(set->data + begin) = 0;
-        *(size_t*)(set->data + begin + sizeof(size_t)) = key_size;
-        memcpy(set->data + begin + 2*sizeof(size_t), key_data, key_size);
+        *(size_t*)(set->fs.data + begin) = 0;
+        *(size_t*)(set->fs.data + begin + sizeof(size_t)) = key_size;
+        memcpy(set->fs.data + begin + 2*sizeof(size_t), key_data, key_size);
 
         /* debug_print_data(set, stderr); */
     }
@@ -190,9 +186,9 @@ static void set_destroy(Hash_Set *set)
 {
     int res;
 
-    if (HAVE_MLOCK && USE_MLOCK && set->data != NULL)
+    if (HAVE_MLOCK && USE_MLOCK && set->fs.data != NULL)
     {
-        res = munlock(set->data, set->capacity*sizeof(size_t));
+        res = munlock(set->fs.data, set->capacity*sizeof(size_t));
         assert(res == 0);
     }
 
@@ -230,7 +226,7 @@ Set *Hash_Set_create(const char *filepath, size_t capacity)
 
     /* Create index */
     resize(set, capacity*sizeof(size_t));
-    memset(set->data, 0, set->fs.size);
+    memset(set->fs.data, 0, set->fs.size);
 
     return &set->base;
 }
