@@ -15,7 +15,7 @@ typedef struct Node Node;
 struct Node
 {
     Node *prev, *next;
-    void   *data;
+    void *data;
     size_t size;
 };
 
@@ -41,7 +41,7 @@ static Node *alloc_node(const void *data, size_t size)
     if (node != NULL)
     {
         node->size = size;
-        node->data = (char*)node + sizeof(Node); 
+        node->data = (char*)node + sizeof(Node);
         memcpy(node->data, data, size);
     }
 
@@ -78,7 +78,7 @@ static bool push_back(MemDeque *deque, const void *data, size_t size)
     {
         node->prev = deque->last;
         node->next = deque->last->next;
-        node->prev->next = node->next->prev = node;
+        deque->last = node->prev->next = node->next->prev = node;
     }
 
     ++deque->count;

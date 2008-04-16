@@ -77,7 +77,7 @@ static bool pop_front(FileDeque *deque)
     return false;
 }
 
-Deque *Deque_create(const char *filepath)
+Deque *File_Deque_create(const char *filepath)
 {
     FileDeque *deque;
 

@@ -56,13 +56,13 @@ struct Deque
 {
     void (*destroy)(struct Deque *);
     bool (*empty)(struct Deque *);
-    size_t (*size)(struct Deque *, const void *, size_t);
+    size_t (*size)(struct Deque *);
     bool (*push_back)(struct Deque *, const void *, size_t);
     bool (*push_front)(struct Deque *, const void *, size_t);
     bool (*get_back)(struct Deque *, void **, size_t *);
     bool (*get_front)(struct Deque *, void **, size_t *);
-    bool (*pop_back)(struct Deque *, const void *, size_t);
-    bool (*pop_front)(struct Deque *, const void *, size_t);
+    bool (*pop_back)(struct Deque *);
+    bool (*pop_front)(struct Deque *);
 };
 
 #endif /* ndef DEQUE_H_INCLUDED */
