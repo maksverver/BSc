@@ -12,9 +12,9 @@ Deque *File_Deque_create(const char *filepath);
 /* Creates a new deque backed by memory. */
 Deque *Memory_Deque_create();
 
-/* The Deque structure implements a file-backed deque data structure (which is
-   a queue that supports adding and removing elements both at the front and at
-   the back).
+
+/* The Deque structure implements a deque data structure: a queue that
+   supports adding and removing elements both at the front and at the back.
 
    Contains the following methods:
 
@@ -43,11 +43,11 @@ Deque *Memory_Deque_create();
         Retrieves the element at the front of the queue or returns false if
         the deque is empty or the element could not be retrieved.
 
-    bool pop_back(const void *data, size_t length)
+    bool pop_back()
         Removes an element at the back of the queue or returns false if the
         deque is empty or the element could not be removed.
 
-    bool pop_front(const void *data, size_t length)
+    bool pop_front()
         Removes an element at the front of the queue or returns false if the
         deque is empty or the element could not be removed.
 
