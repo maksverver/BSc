@@ -1,6 +1,7 @@
 CFLAGS=-I/usr/include/db1 -Wall -g -O0
 LDLIBS=-ldb-4.5
-OBJECTS=FileStorage.o Set.o BDB_Set.o Btree_Set.o Hash_Set.o comparison.o hashing.o
+OBJECTS=FileStorage.o Set.o BDB_Set.o Btree_Set.o Hash_Set.o \
+        Memory_Deque.o File_Deque.o comparison.o hashing.o
 
 all: test datastructures.a
 
