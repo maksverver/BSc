@@ -2,13 +2,9 @@
 #include "Set.h"
 #include "FileStorage.h"
 #include <assert.h>
-#include <fcntl.h>
 #include <stdio.h>
 #include <stdbool.h>
 #include <string.h>
-#include <unistd.h>
-#include <sys/types.h>
-#include <sys/stat.h>
 #include <sys/mman.h>
 
 
@@ -33,7 +29,7 @@ struct Hash_Set
 {
     Set     base;
     size_t  capacity;       /* Index capacity (number of buckets) */
-    FileStorage fs;         /* File storage (first member is data pointer) */
+    FileStorage fs;         /* File storage */
 };
 
 

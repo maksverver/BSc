@@ -2,14 +2,9 @@
 #include "FileStorage.h"
 #include "Set.h"
 #include <assert.h>
-#include <fcntl.h>
 #include <stdio.h>
 #include <stdbool.h>
 #include <string.h>
-#include <unistd.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <sys/mman.h>
 
 /* Page lay-out:
 
@@ -52,7 +47,7 @@ typedef struct Btree_Set
     int     pages;          /* Number of pages */
     int     root;           /* Index of root page */
 
-    FileStorage fs;         /* File storage (first member is data pointer) */
+    FileStorage fs;         /* File storage */
 
     /* Temporary memory pool */
     char    *mem;           /* Allocated memory pool */
