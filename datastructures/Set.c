@@ -6,7 +6,7 @@
 #include <unistd.h>
 
 typedef enum SetType {
-    Btree, Hash, BDB_Unspecified, BDB_Hash, BDB_Btree
+    Btree, Hash, BDB_Unspecified, BDB_Hash, BDB_Btree, Bender
 } SetType;
 
 static const char *make_tempfile()
@@ -39,6 +39,9 @@ static const char *make_tempfile()
 
     "BerkeleyDB hash .."
     Creates a BerkeleyDB hash table based set.
+
+    "bender"
+    Creates a cache-oblivious set (as proposed by Bender et al.)
 
     Common arguments:
     ".. [file=path]"
@@ -77,6 +80,11 @@ Set *Set_create_from_args(int argc, const char * const *argv)
     if (strcmp(*argv, "BerkeleyDB") == 0)
     {
         type = BDB_Unspecified;
+    }
+    else
+    if (strcmp(*argv, "Bender") == 0)
+    {
+        type = Bender;
     }
     else
     {
@@ -146,18 +154,27 @@ Set *Set_create_from_args(int argc, const char * const *argv)
     case Btree:
         result = Btree_Set_create(path, pagesize);
         break;
+
     case Hash:
         result = Hash_Set_create(path, capacity);
         break;
+
     case BDB_Btree:
         result = BDB_Btree_Set_create(path);
         break;
+
     case BDB_Hash:
         result = BDB_Hash_Set_create(path);
         break;
+
+    case Bender:
+        result = Bender_Set_create(path);
+        break;
+
     default:
         /* No valid set selected */
         result = NULL;
+        break;
     }
 
     if (!keep || !result)

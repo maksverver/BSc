@@ -61,6 +61,10 @@ Set *Btree_Set_create(const char *filepath, size_t pagesize);
 /* Creates a set data structure backed by a custom hash table implementation. */
 Set *Hash_Set_create(const char *filepath, size_t capacity);
 
+/* Creates a cache-oblivious set data structure backed as proposed by
+   Bender at al. in "A locality-preserving cache-oblivious data structure". */
+Set *Bender_Set_create(const char *filepath);
+
 
 /* Default comparison function */
 int default_compare( const void *ignored,
