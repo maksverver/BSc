@@ -1,3 +1,5 @@
+#include "config.h"
+#include "comparison.h"
 #include "Set.h"
 #include <assert.h>
 #include <sys/types.h>

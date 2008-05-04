@@ -1,4 +1,5 @@
 #include "config.h"
+#include "comparison.h"
 #include "FileStorage.h"
 #include "Set.h"
 #include <assert.h>

@@ -10,12 +10,43 @@
    then the data structure can store elements of size upto (X - sizeof(int)).
 */
 
-typedef struct Bender_Impl Bender_Impl;
+typedef struct Bender_Impl  Bender_Impl;
+typedef struct Level        Level;
+typedef struct ArrayNode    ArrayNode;
+typedef struct TreeNode     TreeNode;
+
+struct ArrayNode
+{
+    TreeNode *tree;
+    size_t    size;
+    char      data[];
+};
+
+struct TreeNode
+{
+    TreeNode  *parent;
+    TreeNode  *left, *right;
+    ArrayNode *array;
+
+    size_t    size;
+    char      data[];
+};
+
+struct Level
+{
+    size_t  upper_bound;
+    size_t  *population;
+};
 
 struct Bender_Impl
 {
-    size_t value_size;
     FileStorage fs;
+
+    size_t      V;          /* Size of values */
+    int         O;          /* Order (capacity == pow(2,order)) */
+
+    int         L;          /* Number of levels */
+    Level       *level;
 };
 
 /* Create a Bender set implementation. */

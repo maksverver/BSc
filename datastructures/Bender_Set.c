@@ -1,4 +1,5 @@
 #include "config.h"
+#include "comparison.h"
 #include "Set.h"
 #include "Bender_Impl.h"
 #include <assert.h>
@@ -12,10 +13,6 @@
    implementation is required that keeps different sets storing elements of
    different maximum sizes, ranging from 2**4 to 2**15. (Here, ** denotes
    exponentiation.)
-
-   Values are stored in the implementation with an integer that denotes their
-   size, so the maximum size that can be stored is actually
-   (2**15) - sizeof(int) or slightly less than 32KB.
 */
 
 typedef struct Bender_Set Bender_Set;
@@ -28,29 +25,26 @@ struct Bender_Set
 
 /* Computes the index of the set to use for storage.
 
-   Note that the implementation at index i stores values of size
-   upto and including 2**(4+i) but this must include an integer storing
-   the size of the data.
-
-   This function therefore computes and returns the smallest non-negative
-   integer i such that 2**(4+i) >= size + sizeof(int)
+   Note that the implementation at index i stores values of size upto and
+   including 2**(4+i).  This function therefore computes and returns the
+   smallest non-negative integer i such that 2**(4+i) >= size + sizeof(size_t)
 */
 static unsigned get_index(size_t size)
 {
-    int storage_size, index;
+    unsigned storage_size, index;
 
-    storage_size = (int)size + sizeof(int);
+    storage_size = size;
     assert(storage_size > size); /* check for overflow */
-    index = (8*sizeof(int) - __builtin_clz(storage_size - 1)) - 4;
+    index = (8*sizeof(unsigned) - __builtin_clz(storage_size - 1)) - 4;
 
-    return index < 0 ? 0 : (unsigned)index;
+    return index < 0 ? 0 : index;
 }
 
 static bool set_insert(Bender_Set *set, const void *key_data, size_t key_size)
 {
     unsigned index = get_index(key_size);
     assert(index < 12);
-    return Bender_Impl_contains(&set->impl[index], key_data, key_size);
+    return Bender_Impl_insert(&set->impl[index], key_data, key_size);
 }
 
 static bool set_contains(Bender_Set *set, const void *key_data, size_t key_size)

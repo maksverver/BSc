@@ -65,14 +65,4 @@ Set *Hash_Set_create(const char *filepath, size_t capacity);
    Bender at al. in "A locality-preserving cache-oblivious data structure". */
 Set *Bender_Set_create(const char *filepath);
 
-
-/* Default comparison function */
-int default_compare( const void *ignored,
-                     const void *d1, size_t s1,
-                     const void *d2, size_t s2 );
-
-/* Default hash function */
-unsigned default_hash( const void *ignored,
-                       const void *data, size_t size );
-
 #endif /* ndef SET_H_INCLUDED */
