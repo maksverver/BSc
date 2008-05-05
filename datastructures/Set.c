@@ -40,7 +40,7 @@ static const char *make_tempfile()
     "BerkeleyDB hash .."
     Creates a BerkeleyDB hash table based set.
 
-    "bender"
+    "Bender"
     Creates a cache-oblivious set (as proposed by Bender et al.)
 
     Common arguments:

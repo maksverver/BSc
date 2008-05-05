@@ -234,13 +234,38 @@ static void update_tree( Bender_Impl *bi, TreeNode *node,
         }
 
         /* Copy maximum value of child nodes to current node. */
-        greatest = bi->compare( bi->context,
-                                node->left->data, node->left->size,
-                                node->right->data, node->right->size ) >= 0
-                   ? node->left : node->right;
-        node->size = greatest->size;
-        if (node->size != (size_t)-1)
-            memcpy(node->data, greatest->data, node->size);
+        if (node->left->size != (size_t)-1 && node->right->size != (size_t)-1)
+        {
+            greatest = bi->compare( bi->context,
+                                    node->left->data, node->left->size,
+                                    node->right->data, node->right->size ) >= 0
+                    ? node->left : node->right;
+        }
+        else
+        if (node->left->size != (size_t)-1)
+        {
+            greatest = node->left;
+        }
+        else
+        if (node->right->size != (size_t)-1)
+        {
+            greatest = node->right;
+        }
+        else
+        {
+            greatest = NULL;
+        }
+
+        if (greatest != NULL)
+        {
+            node->size = greatest->size;
+            if (node->size != (size_t)-1)
+                memcpy(node->data, greatest->data, node->size);
+        }
+        else
+        {
+            node->size = (size_t)-1;
+        }
     }
 }
 
