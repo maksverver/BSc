@@ -89,7 +89,7 @@ static void debug_print_array(Bender_Impl *bi, FILE *fp)
         s = ARRAY_AT(n)->size;
         if (s != (size_t)-1)
         {
-            printf("%7d ", n);
+            fprintf(fp, "%7d ", n);
             p = ARRAY_AT(n)->data;
             while (s--)
             {
@@ -119,7 +119,6 @@ static void debug_check_counts(Bender_Impl *bi)
             }
             else
             {
-                printf("lev=%d win=%d L=%d\n", lev, win, bi->L);
                 /* Recompute for lowest-level window */
                 pop = 0;
                 for (n = 0; n < WINDOW_SIZE(lev); ++n)
@@ -254,46 +253,85 @@ static void recompute_populations(Bender_Impl *bi, int lev, size_t win)
 /* Redistributes window ``win'' at level ``lev'' while inserting a new data
    element (described by ``data'' and ``size'' at index ``idx''. The caller
    must ensure that the window has a a free slot. */
-/* FIXME: must update population counts. */
 static void insert_and_redistribute (Bender_Impl *bi,
     int lev, size_t win, size_t idx, const void *data, size_t size )
 {
     size_t begin, end, n, p, q, w, W, N, gap_space, gap_extra;
     int l;
-    ArrayNode *an;
 
     W = WINDOW_SIZE(lev);
     begin = win*W;
     end   = begin + W;
 
-    /* Copy elements to the front of the array.
+    /* We start by packing all the elements to the front of the array.
+       If there is a gap at or before ``idx'' this is easy, otherwise
+       we need to do something smart.
 
-       First, copy elements before ``idx''. */
-    q = begin;
+       In the following, p will iterate from begin to end over the original
+       data and q will indicate where the next element is written.
+       In the end, the elements are packed in the range [begin:q).
+    */
+
+    /* Find first gap. */
     for (p = begin; p < idx; ++p)
     {
-        an = ARRAY_AT(p);
-        if (an->size != (size_t)-1)
-        {
-            ARRAY_COPY(ARRAY_AT(q), an);
-            q += 1;
-        }
+        if (ARRAY_AT(p)->size == (size_t)-1)
+            break;
     }
-    /* Insert new element  */
-    an = ARRAY_AT(q);
-    an->size = size;
-    memcpy(an->data, data, size);
-    q += 1;
-    /* Copy elements after ``idx'' */
+    q = p; /* elements in range [begin:p) are already packed */
+
+    if (p < idx)
+    {
+        /* Copy remaining elements before ``idx''. */
+        for ( ; p < idx; ++p)
+        {
+            if (ARRAY_AT(p)->size != (size_t)-1)
+            {
+                ARRAY_COPY(ARRAY_AT(q), ARRAY_AT(p));
+                q += 1;
+            }
+        }
+
+        /* Insert new element. */
+        ARRAY_AT(q)->size = size;
+        memcpy(ARRAY_AT(q)->data, data, size);
+        q += 1;
+    }
+    else
+    {
+        /* No gap before ``idx''; find first gap after ``idx''.*/
+        for ( ; p < end; ++p)
+        {
+            if (ARRAY_AT(p)->size == (size_t)-1)
+                break;
+        }
+        assert(p < end);    /* otherwise, the entire window is full */
+
+        /* Now move consecutive elements one place to the right to create
+           a gap to insert the new element in */
+        for (n = p; n > q; --n)
+            ARRAY_COPY(ARRAY_AT(p), ARRAY_AT(p - 1));
+
+        /* Insert new element in newly created gap */
+        ARRAY_AT(q)->size = size;
+        memcpy(ARRAY_AT(q)->data, data, size);
+
+        q = p; /* [begin:p) is packed */
+    }
+
+    /* Copy remaining elements after ``idx'' */
     for ( ; p < end; ++p)
     {
-        an = ARRAY_AT(p);
-        if (an->size != (size_t)-1)
+        if (ARRAY_AT(p)->size != (size_t)-1)
         {
-            ARRAY_COPY(ARRAY_AT(q), an);
+            ARRAY_COPY(ARRAY_AT(q), ARRAY_AT(p));
             q += 1;
         }
     }
+
+    /* At this point, elements are packed into the range [begin:q) and the
+       contents of [q:end) are undefined. (Not necessarily all blank!) */
+
 
     /* Redistribute elements evenly.
 
@@ -398,7 +436,6 @@ bool Bender_Impl_insert( Bender_Impl *bi,
     assert(win < NUM_WINDOWS(lev));
 
     insert_and_redistribute(bi, win, lev, i, key_data, key_size);
-    debug_print_array(bi, stdout);
     debug_check_counts(bi);
 
     /* TODO: update tree index */
