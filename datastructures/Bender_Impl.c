@@ -64,6 +64,9 @@
                  sizeof(ArrayNode) + bi->V - offsetof(ArrayNode, size) );   \
     } while(0);
 
+/* Convert ArrayNode pointer to index */
+#define ARRAY_IDX(an) (((char*)(an) - bi->fs.data)/(sizeof(ArrayNode) + bi->V))
+
 /* Returns the number of elements in each window at the i-th level. */
 #define WINDOW_SIZE(i) ((size_t)1 << (bi->O - (i)))
 
@@ -111,6 +114,58 @@ static void debug_print_array(Bender_Impl *bi, FILE *fp)
             fputc('\n', fp);
         }
     }
+}
+
+/* Generates a graph representation of the tree with values associated with
+   nodes, in the GraphViz DOT language. */
+static void debug_dump_tree(Bender_Impl *bi, const char *filepath)
+{
+    FILE *fp;
+    size_t n, m;
+    TreeNode *node;
+
+    fp = fopen(filepath, "wt");
+    assert(fp != NULL);
+    fprintf(fp, "digraph {\n");
+
+    /* Output node labels */
+    for (n = 0; n < 2*C - 1; ++n)
+    {
+        char buf[100];
+        size_t len;
+
+        node = (TreeNode*)((char*)bi->tree + n*(sizeof(TreeNode) + bi->V));
+        if (node->size == (size_t)-1)
+        {
+            strcpy(buf, "[blank]");
+        }
+        else
+        {
+            len = node->size >= sizeof(buf) ? sizeof(buf) - 1 : node->size;
+            memcpy(buf, node->data, len);
+            buf[len] = '\0';
+        }
+
+        fprintf(fp, "\tn%d [shape=plaintext,label=\"%s\"]\n", (int)n, buf);
+    }
+
+    /* Output graph configuration */
+    for (n = 0; n < 2*C - 1; ++n)
+    {
+        node = (TreeNode*)((char*)bi->tree + n*(sizeof(TreeNode) + bi->V));
+        if (node->left != NULL)
+        {
+            m = ((char*)node->left - (char*)bi->tree)/(sizeof(TreeNode) + bi->V);
+            fprintf(fp, "\tn%d -> n%d\n", (int)n, (int)m);
+        }
+        if (node->right != NULL)
+        {
+            m = ((char*)node->right - (char*)bi->tree)/(sizeof(TreeNode) + bi->V);
+            fprintf(fp, "\tn%d -> n%d\n", (int)n, (int)m);
+        }
+    }
+    fprintf(fp, "}\n");
+    fclose(fp);
 }
 
 /* Verifies the population count of all windows */
@@ -241,7 +296,7 @@ static void update_tree( Bender_Impl *bi, TreeNode *node,
         if (end > k)
         {
             /* Traverse right subtree */
-            update_tree(bi, node->left, k, size/2, begin, end);
+            update_tree(bi, node->right, k, size/2, begin, end);
         }
 
         /* Copy maximum value of child nodes to current node. */
@@ -285,23 +340,38 @@ static void update_tree( Bender_Impl *bi, TreeNode *node,
 static size_t find_successor(Bender_Impl *bi,
                              const void *data, size_t size, int *diff)
 {
-    size_t n;
+    TreeNode *node;
 
-    for (n = 0; n < C; ++n)
+    /* First, see if any successor exists, by comparing against the root
+       which stores the maximum value in the array. */
+    node = bi->tree;
+    if (node->size == (size_t)-1 ||
+        bi->compare(bi->context, node->data, node->size, data, size) < 0)
     {
-        if (ARRAY_AT(n)->size != (size_t)-1)
+        return C;
+    }
+
+    /* Now find the real successor by moving down the tree.*/
+    while (node->array == NULL)
+    {
+        if ( node->left->size == (size_t)-1 ||
+             bi->compare( bi->context, node->left->data, node->left->size,
+                                       data, size ) < 0 )
         {
-            /* FIXME: make comparison configurable */
-            *diff = bi->compare( bi->context,
-                                 ARRAY_AT(n)->data, ARRAY_AT(n)->size,
-                                 data, size );
-            if (*diff >= 0)
-            {
-                break;
-            }
+            /* Values in left subtree too small -- go to right subtree */
+            node = node->right;
+        }
+        else
+        {
+            /* Left subtree has a successor. */
+            node = node->left;
         }
     }
-    return n;
+
+    *diff = bi->compare(bi->context, node->data, node->size, data, size);
+
+    /* Convert pointer to index (a bit ugly) */
+    return ARRAY_IDX(node->array);
 }
 
 /* Recomputes population counts of all levels below (excluding!) ``lev''
@@ -580,10 +650,12 @@ bool Bender_Impl_insert( Bender_Impl *bi,
     assert(win < NUM_WINDOWS(lev));
 
     insert_and_redistribute(bi, lev, win, i, key_data, key_size);
-    debug_check_counts(bi);
+    /* debug_check_counts(bi); */
 
     /* Now update tree index to reflect the changes */
     update_tree(bi, bi->tree, 0, C, 0, C);
+
+    /* debug_dump_tree(bi, "tree.dot"); */
 
     return false;
 }
