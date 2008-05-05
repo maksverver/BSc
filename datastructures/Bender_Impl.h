@@ -17,16 +17,22 @@ typedef struct TreeNode     TreeNode;
 
 struct ArrayNode
 {
-    TreeNode *tree;
-    size_t    size;
-    char      data[];
+    /* NB. Any additional members must be added here, before ``size'', as
+           values are copied by copyinging the contents starting from ``size''.
+    */
+
+    size_t   size;
+    char     data[];
 };
 
 struct TreeNode
 {
-    TreeNode  *parent;
     TreeNode  *left, *right;
     ArrayNode *array;
+
+    /* NB. Any additional members must be added here, before ``size'', as
+           values are copied by copyinging the contents starting from ``size''.
+    */
 
     size_t    size;
     char      data[];
@@ -40,13 +46,14 @@ struct Level
 
 struct Bender_Impl
 {
-    FileStorage fs;
-
     size_t      V;          /* Size of values */
     int         O;          /* Order (capacity == pow(2,order)) */
 
     int         L;          /* Number of levels */
     Level       *level;
+
+    TreeNode    *tree;
+    FileStorage fs;
 };
 
 /* Create a Bender set implementation. */

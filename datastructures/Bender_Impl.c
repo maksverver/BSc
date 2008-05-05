@@ -56,7 +56,8 @@
 /* Copy value of ArrayNode *q to ArrayNode *p while keeping the pointer data
    unmodified. */
 #define ARRAY_COPY(p, q)                                                    \
-    do { if (p == q) break; /* Necessary because memset doesn't allow       \
+    do { assert(q->size != (size_t)-1);                                     \
+         if (p == q) break; /* Necessary because memset doesn't allow       \
                                overlapping memory regions. */               \
          memcpy( (char*)(p) + offsetof(ArrayNode, size),                    \
                  (char*)(q) + offsetof(ArrayNode, size),                    \
@@ -156,39 +157,89 @@ static bool ispow2(unsigned long long x)
     return x && (x&(x - 1)) == 0;
 }
 
-static void resize(Bender_Impl *bi, int new_order)
+/* Creates a single node of the index tree. */
+static TreeNode *create_tree_node(
+    Bender_Impl *bi, size_t *tree_pos, size_t *array_pos, int level )
 {
-    bool ok;
-    int n;
+    TreeNode *node;
 
-    /* Resize array */
-    ok = FS_resize(&bi->fs, (sizeof(ArrayNode)+bi->V)<<new_order);
-    assert(ok);
-    for ( n = (bi->O > 0) ? ((size_t)1 << (bi->O)) : 0;
-          n < ((size_t)1 << new_order); ++n )
+    /* Allocate a new node */
+    node = (TreeNode*)((char*)bi->tree + *tree_pos*(sizeof(TreeNode) + bi->V));
+    *tree_pos += 1;
+    node->size = (size_t)-1;
+
+    if (level == bi->O)
     {
-        ARRAY_AT(n)->size = (size_t)-1;
+        /* Create leaf node */
+        node->left = node->right = NULL;
+        node->array = ARRAY_AT(*array_pos);
+        *array_pos += 1;
     }
-    bi->O = new_order;
-    debug_print_array(bi, stdout);
-
-    /* Create new levels */
-    free(bi->level);
-    for (n = 0; n < bi->L; ++n)
-        free(bi->level[n].population);
-    bi->L = new_order - log2i(new_order) + 1;
-    bi->level = malloc(sizeof(Level)*bi->L);
-    for (n = 0; n < bi->L; ++n)
+    else
     {
-        /* FIXME: Bender uses a range from 1 to x (x<1) for this! */
-        bi->level[n].upper_bound = WINDOW_SIZE(n);
-        bi->level[n].population  = malloc(sizeof(size_t)*NUM_WINDOWS(n));
-        memset(bi->level[n].population, 0, sizeof(size_t)*NUM_WINDOWS(n));
+        /* Create interior node */
+        node->left  = create_tree_node(bi, tree_pos, array_pos, level + 1);
+        node->right = create_tree_node(bi, tree_pos, array_pos, level + 1);
+        node->array = NULL;
     }
 
-    /* TODO: recreate index tree */
+    return node;
+}
 
-    /* TODO: update population counts */
+/* Creates the tree index structure.
+
+   TODO: change this so the tree is created in van Emde Boas layout.
+*/
+static void create_tree(Bender_Impl *bi)
+{
+    size_t tree_pos, array_pos;
+
+    tree_pos = array_pos = 0;
+    create_tree_node(bi, &tree_pos, &array_pos, 0);
+    assert(array_pos == C);
+    assert(tree_pos = 2*array_pos - 1);
+}
+
+/* Updates the contents of the tree corresponding to the array nodes in the
+   range [begin:end). The tree must be traversed in postorder for optimal
+   performance.
+
+   FIXME: some of these arguments can be eliminated.
+*/
+static void update_tree( TreeNode *node, size_t offset, size_t size,
+                         size_t begin, size_t end )
+{
+    if (node->array)
+    {
+        /* Leaf node */
+        node->size = node->array->size;
+        if (node->size != (size_t)-1)
+            memcpy(node->data, node->array->data, node->size);
+    }
+    else
+    {
+        /* Internal node */
+        TreeNode *greatest;
+        size_t k = offset + size/2;
+        if (begin < k)
+        {
+            /* Traverse left subtree */
+            update_tree(node->left, offset, size/2, begin, end);
+        }
+        if (end > k)
+        {
+            /* Traverse right subtree */
+            update_tree(node->left, k, size/2, begin, end);
+        }
+
+        /* Copy maximum value of child nodes to current node. */
+        greatest = default_compare( NULL, node->left->data, node->left->size,
+                                    node->right->data, node->right->size ) >= 0
+                   ? node->left : node->right;
+        node->size = greatest->size;
+        if (node->size != (size_t)-1)
+            memcpy(node->data, greatest->data, node->size);
+    }
 }
 
 /* Returns the index into the data array of the first element not smaller
@@ -249,6 +300,54 @@ static void recompute_populations(Bender_Impl *bi, int lev, size_t win)
     }
 }
 
+static void resize(Bender_Impl *bi, int new_order)
+{
+    bool ok;
+    int n;
+
+    /* Resize file; we need C array elements and 2*C-1 tree nodes. */
+    ok = FS_resize(&bi->fs,
+        ((sizeof(ArrayNode) + bi->V)<<new_order) +
+        2*((sizeof(TreeNode) + bi->V)<<(new_order)) - 1);
+    assert(ok);
+
+    /* Write blank values to the new part of the array */
+    for ( n = (bi->O > 0) ? ((size_t)1 << (bi->O)) : 0;
+          n < ((size_t)1 << new_order); ++n )
+    {
+        ARRAY_AT(n)->size = (size_t)-1;
+    }
+    bi->O = new_order;
+
+    /* Create new levels */
+    free(bi->level);
+    for (n = 0; n < bi->L; ++n)
+        free(bi->level[n].population);
+    bi->L = new_order - log2i(new_order) + 1;
+    assert(bi->L >= 2);
+    bi->level = malloc(sizeof(Level)*bi->L);
+    for (n = 0; n < bi->L; ++n)
+    {
+        /* FIXME: Bender proposes using a range from 1 to x (x<1) for this!
+                  (I don't see why this is necessary?) */
+        bi->level[n].upper_bound = WINDOW_SIZE(n);
+        bi->level[n].population  = malloc(sizeof(size_t)*NUM_WINDOWS(n));
+        memset(bi->level[n].population, 0, sizeof(size_t)*NUM_WINDOWS(n));
+    }
+
+    /* Recompute population counts */
+    recompute_populations(bi, 0, 0);
+    bi->level[0].population[0] = bi->level[1].population[0] +
+                                 bi->level[1].population[1];
+
+    /* Recreate tree index */
+    bi->tree = (TreeNode*)( bi->fs.data +
+                            ((sizeof(ArrayNode) + bi->V)<<new_order) );
+    create_tree(bi);
+
+    /* Update entire tree */
+    update_tree(bi->tree, 0, C, 0, C);
+}
 
 /* Redistributes window ``win'' at level ``lev'' while inserting a new data
    element (described by ``data'' and ``size'' at index ``idx''. The caller
@@ -385,6 +484,7 @@ static void insert_and_redistribute (Bender_Impl *bi,
     recompute_populations(bi, lev, win);
 }
 
+
 void Bender_Impl_create( Bender_Impl *bi,
                          const char *filepath, size_t value_size )
 {
@@ -418,11 +518,19 @@ bool Bender_Impl_insert( Bender_Impl *bi,
 
     assert(key_size < bi->V);
 
+    if (bi->level[0].population[0] == bi->level[0].upper_bound)
+    {
+        /* Array is full! */
+        printf("Resizing from %d to %d!", bi->O, bi->O+1);
+        debug_print_array(bi, stdout);
+        resize(bi, bi->O + 1);
+        debug_print_array(bi, stdout);
+    }
+
     i = find_successor(bi, key_data, key_size, &diff);
     if (i < C && diff == 0)
         return true;
     j = (i == C) ? i - 1 : i;
-
 
     for (lev = bi->L - 1; lev >= 0; --lev)
     {
@@ -430,7 +538,7 @@ bool Bender_Impl_insert( Bender_Impl *bi,
         if (bi->level[lev].population[win] < bi->level[lev].upper_bound)
             break;
     }
-    assert(lev >= 0); /* if this fails, we need to extend the array */
+    assert(lev >= 0);
 
     printf("%d levels; inserting at level %d window %d\n", bi->L, lev, (int)win);
     assert(win < NUM_WINDOWS(lev));
@@ -438,7 +546,8 @@ bool Bender_Impl_insert( Bender_Impl *bi,
     insert_and_redistribute(bi, win, lev, i, key_data, key_size);
     debug_check_counts(bi);
 
-    /* TODO: update tree index */
+    /* Now update tree index to reflect the changes */
+    update_tree(bi->tree, 0, C, 0, C);
 
     return false;
 }
