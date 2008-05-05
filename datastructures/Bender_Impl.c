@@ -226,13 +226,15 @@ static bool ispow2(unsigned long long x)
 
 /* Creates a single node of the index tree. */
 static TreeNode *create_tree_node(
-    Bender_Impl *bi, size_t *tree_pos, size_t *array_pos, int level )
+    Bender_Impl *bi, TreeNode *parent,
+    size_t *tree_pos, size_t *array_pos, int level )
 {
     TreeNode *node;
 
     /* Allocate a new node */
     node = (TreeNode*)((char*)bi->tree + *tree_pos*(sizeof(TreeNode) + bi->V));
     *tree_pos += 1;
+    node->parent = parent;
     node->size = (size_t)-1;
 
     if (level == bi->O)
@@ -241,12 +243,15 @@ static TreeNode *create_tree_node(
         node->left = node->right = NULL;
         node->array = ARRAY_AT(*array_pos);
         *array_pos += 1;
+        node->array->tree = node;
     }
     else
     {
         /* Create interior node */
-        node->left  = create_tree_node(bi, tree_pos, array_pos, level + 1);
-        node->right = create_tree_node(bi, tree_pos, array_pos, level + 1);
+        node->left  = create_tree_node( bi, node, tree_pos,
+                                        array_pos, level + 1 );
+        node->right = create_tree_node( bi, node, tree_pos,
+                                        array_pos, level + 1 );
         node->array = NULL;
     }
 
@@ -262,15 +267,15 @@ static void create_tree(Bender_Impl *bi)
     size_t tree_pos, array_pos;
 
     tree_pos = array_pos = 0;
-    create_tree_node(bi, &tree_pos, &array_pos, 0);
+    create_tree_node(bi, NULL, &tree_pos, &array_pos, 0);
     assert(array_pos == C);
     assert(tree_pos = 2*array_pos - 1);
 }
 
 /* Updates the contents of the tree corresponding to a range of array nodes
    The tree must be traversed in postorder for optimal performance. */
-static void update_tree( Bender_Impl *bi, TreeNode *node,
-                         int level, ssize_t begin, ssize_t end )
+static void update_tree_window(
+    Bender_Impl *bi, TreeNode *node, int level, ssize_t begin, ssize_t end )
 {
     if (node->array)
     {
@@ -287,12 +292,12 @@ static void update_tree( Bender_Impl *bi, TreeNode *node,
         if (begin < k)
         {
             /* Traverse left subtree */
-            update_tree(bi, node->left, level + 1, begin, end);
+            update_tree_window(bi, node->left, level + 1, begin, end);
         }
         if (end > k)
         {
             /* Traverse right subtree */
-            update_tree(bi, node->right, level + 1, begin - k, end - k);
+            update_tree_window(bi, node->right, level + 1, begin - k, end - k);
         }
 
         /* Copy maximum value of child nodes to current node. */
@@ -452,7 +457,7 @@ static void resize(Bender_Impl *bi, int new_order)
     create_tree(bi);
 
     /* Update entire tree */
-    update_tree(bi, bi->tree, 0, 0, C);
+    update_tree_window(bi, bi->tree, 0, 0, C);
 }
 
 /* Redistributes window ``win'' at level ``lev'' while inserting a new data
@@ -631,26 +636,68 @@ bool Bender_Impl_insert( Bender_Impl *bi,
         resize(bi, bi->O + 1);
     }
 
+    /* First, find successor node */
     i = find_successor(bi, key_data, key_size, &diff);
     if (i < C && diff == 0)
-        return true;
+        return true;    /* value already exists */
+
+    /* Find size of gap before successor */
+    j = i;
+    while (j > 0 &&ARRAY_AT(j - 1)->size == (size_t)-1)
+        --j;
+
+    if (j < i)
+    {
+        /* There is a gap before the successor! Insert in the middle. */
+        TreeNode *node;
+
+        j = (i + j)/2;
+        assert(ARRAY_AT(j)->size == (size_t)-1);
+
+        /* Insert before successor */
+        ARRAY_AT(j)->size = key_size;
+        memcpy(ARRAY_AT(j)->data, key_data, key_size);
+
+        /* Update population counts */
+        for (lev = bi->L - 1; lev >= 0; --lev)
+        {
+            win = j/WINDOW_SIZE(lev);
+            bi->level[lev].population[win] += 1;
+        }
+
+        /* Update tree index */
+        node = ARRAY_AT(j)->tree;
+        do {
+            node->size = key_size;
+            memcpy(node->data, key_data, key_size);
+            node = node->parent;
+        } while (node != NULL && (node->size == (size_t)-1 ||
+                    bi->compare( bi->context, node->data, node->size,
+                                              key_data, key_size ) < 0));
+
+        /* Update complete! */
+        return false;
+    }
+
+    /* There was no free space; we need to rebalance a window to fit the
+       element in. */
     j = (i == C) ? i - 1 : i;
 
+    /* Find a suitable window */
     for (lev = bi->L - 1; lev >= 0; --lev)
     {
         win = j/WINDOW_SIZE(lev);
         if (bi->level[lev].population[win] < bi->level[lev].upper_bound)
             break;
     }
-    assert(lev >= 0);
+    assert(lev >= 0); /* No suitable window found -- this is impossible */
     assert(win < NUM_WINDOWS(lev));
 
     insert_and_redistribute(bi, lev, win, i, key_data, key_size);
     /* debug_check_counts(bi); */
 
     /* Now update tree index to reflect the changes */
-    update_tree(bi, bi->tree, 0, 0, C);
-
+    update_tree_window(bi, bi->tree, 0, 0, C);
     /* debug_dump_tree(bi, "tree.dot"); */
 
     return false;

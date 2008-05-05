@@ -17,6 +17,8 @@ typedef struct TreeNode     TreeNode;
 
 struct ArrayNode
 {
+    TreeNode *tree;
+
     /* NB. Any additional members must be added here, before ``size'', as
            values are copied by copyinging the contents starting from ``size''.
     */
@@ -27,7 +29,7 @@ struct ArrayNode
 
 struct TreeNode
 {
-    TreeNode  *left, *right;
+    TreeNode  *left, *right, *parent;
     ArrayNode *array;
 
     /* NB. Any additional members must be added here, before ``size'', as
