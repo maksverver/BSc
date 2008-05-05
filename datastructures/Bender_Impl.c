@@ -367,8 +367,9 @@ static void insert_and_redistribute (Bender_Impl *bi,
        we need to do something smart.
 
        In the following, p will iterate from begin to end over the original
-       data and q will indicate where the next element is written.
-       In the end, the elements are packed in the range [begin:q).
+       data and q will indicate where the next element is written, so
+       q <= p. The goal is to pack all elements (including the new one) in
+       range [begin:q).
     */
 
     /* Find first gap. */
@@ -520,8 +521,7 @@ bool Bender_Impl_insert( Bender_Impl *bi,
 
     if (bi->level[0].population[0] == bi->level[0].upper_bound)
     {
-        /* Array is full! */
-        printf("Resizing from %d to %d!", bi->O, bi->O+1);
+        /* Array is full -- resize to next order of size. */
         debug_print_array(bi, stdout);
         resize(bi, bi->O + 1);
         debug_print_array(bi, stdout);
@@ -539,11 +539,9 @@ bool Bender_Impl_insert( Bender_Impl *bi,
             break;
     }
     assert(lev >= 0);
-
-    printf("%d levels; inserting at level %d window %d\n", bi->L, lev, (int)win);
     assert(win < NUM_WINDOWS(lev));
 
-    insert_and_redistribute(bi, win, lev, i, key_data, key_size);
+    insert_and_redistribute(bi, lev, win, i, key_data, key_size);
     debug_check_counts(bi);
 
     /* Now update tree index to reflect the changes */
