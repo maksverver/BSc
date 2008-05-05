@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <stddef.h>
 
 /* Implementation of Bender's cache-oblivious set data structure.
 
@@ -50,7 +51,17 @@
 
 
 /* Returns a pointer to the i-th element in the data array. */
-#define ARRAY_AT(i) ((ArrayNode*)(bi->fs.data+(i)*(sizeof(ArrayNode)+(bi->V))))
+#define ARRAY_AT(i) ((ArrayNode*)(bi->fs.data+(i)*(sizeof(ArrayNode)+bi->V)))
+
+/* Copy value of ArrayNode *q to ArrayNode *p while keeping the pointer data
+   unmodified. */
+#define ARRAY_COPY(p, q)                                                    \
+    do { if (p == q) break; /* Necessary because memset doesn't allow       \
+                               overlapping memory regions. */               \
+         memcpy( (char*)(p) + offsetof(ArrayNode, size),                    \
+                 (char*)(q) + offsetof(ArrayNode, size),                    \
+                 sizeof(ArrayNode) + bi->V - offsetof(ArrayNode, size) );   \
+    } while(0);
 
 /* Returns the number of elements in each window at the i-th level. */
 #define WINDOW_SIZE(i) ((size_t)1 << (bi->O - (i)))
@@ -81,8 +92,51 @@ static void debug_print_array(Bender_Impl *bi, FILE *fp)
             printf("%7d ", n);
             p = ARRAY_AT(n)->data;
             while (s--)
+            {
                 fputc((*p >= 32 && *p < 127) ? *p : '.', fp);
+                p += 1;
+            }
             fputc('\n', fp);
+        }
+    }
+}
+
+/* Verifies the population count of all windows */
+static void debug_check_counts(Bender_Impl *bi)
+{
+    int lev, win;
+    size_t pop, n;
+
+    for (lev = 0; lev < bi->L; ++lev)
+    {
+        for (win = 0; win < NUM_WINDOWS(lev); ++win)
+        {
+            if (lev < bi->L - 1)
+            {
+                /* Check non-lowest level */
+                pop = bi->level[lev + 1].population[2*win + 0] +
+                      bi->level[lev + 1].population[2*win + 1];
+            }
+            else
+            {
+                printf("lev=%d win=%d L=%d\n", lev, win, bi->L);
+                /* Recompute for lowest-level window */
+                pop = 0;
+                for (n = 0; n < WINDOW_SIZE(lev); ++n)
+                    pop += (ARRAY_AT(win*WINDOW_SIZE(lev) + n)->size
+                            != (size_t)-1);
+            }
+
+            if (bi->level[lev].population[win] != pop)
+            {
+                fprintf( stderr,
+                         "Window %d at level %d as incorrect population!"
+                         " (Was: %llu; expected: %llu)\n", win, lev,
+                        (unsigned long long)bi->level[lev].population[win],
+                        (unsigned long long)pop );
+                abort();
+            }
+            assert(bi->level[lev].population[win] == pop);
         }
     }
 }
@@ -140,7 +194,8 @@ static void resize(Bender_Impl *bi, int new_order)
 
 /* Returns the index into the data array of the first element not smaller
    than the argument, or C if no smaller element exists. */
-static size_t find_successor(Bender_Impl *bi, const void *data, size_t size)
+static size_t find_successor(Bender_Impl *bi,
+                             const void *data, size_t size, int *diff)
 {
     size_t n;
 
@@ -149,14 +204,147 @@ static size_t find_successor(Bender_Impl *bi, const void *data, size_t size)
         if (ARRAY_AT(n)->size != (size_t)-1)
         {
             /* FIXME: make comparison configurable */
-            if (default_compare(NULL, ARRAY_AT(n)->data, ARRAY_AT(n)->size,
-                                      data, size) >= 0)
+            *diff = default_compare(NULL, ARRAY_AT(n)->data, ARRAY_AT(n)->size,
+                                    data, size);
+            if (*diff >=0)
             {
                 break;
             }
         }
     }
     return n;
+}
+
+/* Recomputes population counts of all levels below (excluding!) ``lev''
+   in the windows overlapping ``win'' on level ``lev''. */
+static void recompute_populations(Bender_Impl *bi, int lev, size_t win)
+{
+    size_t p, w, n;
+    int l;
+
+    /* If we are the lowest level, are no lower levels. */
+    if (lev == bi->L - 1)
+        return;
+
+    /* The windows on levels below the current level have to be recomputed
+    bottom-up. First, compute the lowest-level. */
+    p = win*WINDOW_SIZE(lev);
+    for (w = (win << (bi->L - 1 - lev)); w < ((win+1) << (bi->L - 1 - lev)); ++w)
+    {
+        bi->level[bi->L - 1].population[w] = 0;
+        for (n = 0; n < WINDOW_SIZE(bi->L-1); ++n)
+        {
+            bi->level[bi->L - 1].population[w] += ARRAY_AT(p)->size != (size_t)-1;
+            p += 1;
+        }
+    }
+
+    /* Recompute for higher levels */
+    for (l = bi->L-2; l > lev; --l)
+    {
+        for (w = (win << (l - lev)); w < ((win+1) << (l - lev)); ++w)
+        {
+            bi->level[l].population[w] = bi->level[l + 1].population[2*w + 0] +
+                                        bi->level[l + 1].population[2*w + 1];
+        }
+    }
+}
+
+
+/* Redistributes window ``win'' at level ``lev'' while inserting a new data
+   element (described by ``data'' and ``size'' at index ``idx''. The caller
+   must ensure that the window has a a free slot. */
+/* FIXME: must update population counts. */
+static void insert_and_redistribute (Bender_Impl *bi,
+    int lev, size_t win, size_t idx, const void *data, size_t size )
+{
+    size_t begin, end, n, p, q, w, W, N, gap_space, gap_extra;
+    int l;
+    ArrayNode *an;
+
+    W = WINDOW_SIZE(lev);
+    begin = win*W;
+    end   = begin + W;
+
+    /* Copy elements to the front of the array.
+
+       First, copy elements before ``idx''. */
+    q = begin;
+    for (p = begin; p < idx; ++p)
+    {
+        an = ARRAY_AT(p);
+        if (an->size != (size_t)-1)
+        {
+            ARRAY_COPY(ARRAY_AT(q), an);
+            q += 1;
+        }
+    }
+    /* Insert new element  */
+    an = ARRAY_AT(q);
+    an->size = size;
+    memcpy(an->data, data, size);
+    q += 1;
+    /* Copy elements after ``idx'' */
+    for ( ; p < end; ++p)
+    {
+        an = ARRAY_AT(p);
+        if (an->size != (size_t)-1)
+        {
+            ARRAY_COPY(ARRAY_AT(q), an);
+            q += 1;
+        }
+    }
+
+    /* Redistribute elements evenly.
+
+       "Evenly" means that if the window has size "W" and contains "N"
+       elements, then there are (W-N) spaces to be divided over N+1 gaps,
+       which means that each gap is at least (W-N)/(N+1) (rounded down)
+       in size, while the last (W-N)%(N+1) gaps have an extra space.
+
+       (This definition if evenly is not specifically required, as long
+        as elements are divided roughly evenly among windows of the lower
+        levels.)
+    */
+    N = bi->level[lev].population[win] + 1;
+    gap_space = (W - N)/(N + 1);
+    gap_extra = (W - N)%(N + 1);
+
+    p = end;
+    while (q > begin)
+    {
+        /* Insert gap */
+        for (n = 0; n < gap_space; ++n)
+        {
+            p -= 1;
+            ARRAY_AT(p)->size = (size_t)-1;
+        }
+        if (gap_extra > 0)
+        {
+            p -= 1;
+            ARRAY_AT(p)->size = (size_t)-1;
+            gap_extra -= 1;
+        }
+
+        /* Copy element */
+        p -= 1, q -= 1;
+        ARRAY_COPY(ARRAY_AT(p), ARRAY_AT(q));
+    }
+    while (p > begin)
+    {
+        p -= 1;
+        ARRAY_AT(p)->size = (size_t)-1;
+    }
+
+    /* Update population counts. On the current level and all higher levels
+       (with larger windows) only one window changes. */
+    w = win;
+    for (l = lev; l >= 0; --l)
+    {
+        bi->level[l].population[w] += 1;
+        w /= 2;
+    }
+    recompute_populations(bi, lev, win);
 }
 
 void Bender_Impl_create( Bender_Impl *bi,
@@ -188,10 +376,15 @@ bool Bender_Impl_insert( Bender_Impl *bi,
                          const void *key_data, size_t key_size )
 {
     size_t i, j, win;
-    int lev;
+    int lev, diff;
 
-    i = find_successor(bi, key_data, key_size);
+    assert(key_size < bi->V);
+
+    i = find_successor(bi, key_data, key_size, &diff);
+    if (i < C && diff == 0)
+        return true;
     j = (i == C) ? i - 1 : i;
+
 
     for (lev = bi->L - 1; lev >= 0; --lev)
     {
@@ -204,9 +397,13 @@ bool Bender_Impl_insert( Bender_Impl *bi,
     printf("%d levels; inserting at level %d window %d\n", bi->L, lev, (int)win);
     assert(win < NUM_WINDOWS(lev));
 
+    insert_and_redistribute(bi, win, lev, i, key_data, key_size);
     debug_print_array(bi, stdout);
-    /* TODO */
-    assert(0);
+    debug_check_counts(bi);
+
+    /* TODO: update tree index */
+
+    return false;
 }
 
 bool Bender_Impl_contains( Bender_Impl *set,

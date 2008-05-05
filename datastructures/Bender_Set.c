@@ -31,13 +31,14 @@ struct Bender_Set
 */
 static unsigned get_index(size_t size)
 {
-    unsigned storage_size, index;
+    int index;
 
-    storage_size = size;
-    assert(storage_size > size); /* check for overflow */
-    index = (8*sizeof(unsigned) - __builtin_clz(storage_size - 1)) - 4;
+    assert((unsigned)size == size); /* check for overflow */
+    if (size == 0)
+        return 0;
+    index = (int)(8*sizeof(unsigned) - __builtin_clz(size - 1)) - 4;
 
-    return index < 0 ? 0 : index;
+    return index < 0 ? 0 : (unsigned)index;
 }
 
 static bool set_insert(Bender_Set *set, const void *key_data, size_t key_size)
