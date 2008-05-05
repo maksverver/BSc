@@ -42,18 +42,27 @@ static unsigned get_index(size_t size)
     return index < 0 ? 0 : (unsigned)index;
 }
 
-static bool set_insert(Bender_Set *set, const void *key_data, size_t key_size)
+static Bender_Impl *get_impl(Bender_Set *set, size_t key_size)
 {
     unsigned index = get_index(key_size);
     assert(index < 12);
-    return Bender_Impl_insert(&set->impl[index], key_data, key_size);
+    return &set->impl[index];
+}
+
+static bool set_insert(Bender_Set *set, const void *key_data, size_t key_size)
+{
+    Bender_Impl *impl = get_impl(set, key_size);
+    impl->compare = set->base.compare;
+    impl->context = set->base.context;
+    return Bender_Impl_insert(impl, key_data, key_size);
 }
 
 static bool set_contains(Bender_Set *set, const void *key_data, size_t key_size)
 {
-    unsigned index = get_index(key_size);
-    assert(index < 12);
-    return Bender_Impl_contains(&set->impl[index], key_data, key_size);
+    Bender_Impl *impl = get_impl(set, key_size);
+    impl->compare = set->base.compare;
+    impl->context = set->base.context;
+    return Bender_Impl_insert(impl, key_data, key_size);
 }
 
 /* Destroys a set data structure, by closing the backing file
@@ -83,7 +92,6 @@ Set *Bender_Set_create(const char *filepath)
     set->base.insert   = (void*)set_insert;
     set->base.contains = (void*)set_contains;
     set->base.compare  = default_compare;
-    set->base.hash     = default_hash;
 
     /* Create statically sized sets */
     for (index = 0; index < 12; ++index)

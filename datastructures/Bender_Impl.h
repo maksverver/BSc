@@ -54,6 +54,10 @@ struct Bender_Impl
 
     TreeNode    *tree;
     FileStorage fs;
+
+    /* Custom comparison function */
+    int (*compare)(const void *, const void *, size_t, const void *, size_t);
+    const void *context;
 };
 
 /* Create a Bender set implementation. */

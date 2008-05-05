@@ -14,9 +14,6 @@ test-set: datastructures.a test-set.c
 test-deque: datastructures.a test-deque.c
 	$(CC) $(LDFLAGS) -o "$@" test-deque.c datastructures.a $(LDLIBS)
 
-test: datastructures.a test.c
-	$(CC) $(LDFLAGS) -o "$@" test.c datastructures.a $(LDLIBS)
-
 clean:
 	rm -f $(OBJECTS)
 

@@ -149,7 +149,7 @@ static int log2i(unsigned long long x)
     if (x == 0)
         return -1;
 
-    return (8*sizeof(long long) - __builtin_clzll(x));
+    return (8*sizeof(unsigned long long) - __builtin_clzll(x));
 }
 
 /* Returns wether x is an integer power of 2. */
@@ -207,8 +207,8 @@ static void create_tree(Bender_Impl *bi)
 
    FIXME: some of these arguments can be eliminated.
 */
-static void update_tree( TreeNode *node, size_t offset, size_t size,
-                         size_t begin, size_t end )
+static void update_tree( Bender_Impl *bi, TreeNode *node,
+    size_t offset, size_t size, size_t begin, size_t end )
 {
     if (node->array)
     {
@@ -225,17 +225,18 @@ static void update_tree( TreeNode *node, size_t offset, size_t size,
         if (begin < k)
         {
             /* Traverse left subtree */
-            update_tree(node->left, offset, size/2, begin, end);
+            update_tree(bi, node->left, offset, size/2, begin, end);
         }
         if (end > k)
         {
             /* Traverse right subtree */
-            update_tree(node->left, k, size/2, begin, end);
+            update_tree(bi, node->left, k, size/2, begin, end);
         }
 
         /* Copy maximum value of child nodes to current node. */
-        greatest = default_compare( NULL, node->left->data, node->left->size,
-                                    node->right->data, node->right->size ) >= 0
+        greatest = bi->compare( bi->context,
+                                node->left->data, node->left->size,
+                                node->right->data, node->right->size ) >= 0
                    ? node->left : node->right;
         node->size = greatest->size;
         if (node->size != (size_t)-1)
@@ -255,8 +256,9 @@ static size_t find_successor(Bender_Impl *bi,
         if (ARRAY_AT(n)->size != (size_t)-1)
         {
             /* FIXME: make comparison configurable */
-            *diff = default_compare(NULL, ARRAY_AT(n)->data, ARRAY_AT(n)->size,
-                                    data, size);
+            *diff = bi->compare( bi->context,
+                                 ARRAY_AT(n)->data, ARRAY_AT(n)->size,
+                                 data, size );
             if (*diff >=0)
             {
                 break;
@@ -348,7 +350,7 @@ static void resize(Bender_Impl *bi, int new_order)
     create_tree(bi);
 
     /* Update entire tree */
-    update_tree(bi->tree, 0, C, 0, C);
+    update_tree(bi, bi->tree, 0, C, 0, C);
 }
 
 /* Redistributes window ``win'' at level ``lev'' while inserting a new data
@@ -545,14 +547,15 @@ bool Bender_Impl_insert( Bender_Impl *bi,
     debug_check_counts(bi);
 
     /* Now update tree index to reflect the changes */
-    update_tree(bi->tree, 0, C, 0, C);
+    update_tree(bi, bi->tree, 0, C, 0, C);
 
     return false;
 }
 
-bool Bender_Impl_contains( Bender_Impl *set,
+bool Bender_Impl_contains( Bender_Impl *bi,
                            const void *key_data, size_t key_size )
 {
-    /* TODO */
-    assert(0);
+    int diff;
+
+    return find_successor(bi, key_data, key_size, &diff) < C && diff == 0;
 }
