@@ -267,14 +267,10 @@ static void create_tree(Bender_Impl *bi)
     assert(tree_pos = 2*array_pos - 1);
 }
 
-/* Updates the contents of the tree corresponding to the array nodes in the
-   range [begin:end). The tree must be traversed in postorder for optimal
-   performance.
-
-   FIXME: some of these arguments can be eliminated.
-*/
+/* Updates the contents of the tree corresponding to a range of array nodes
+   The tree must be traversed in postorder for optimal performance. */
 static void update_tree( Bender_Impl *bi, TreeNode *node,
-    size_t offset, size_t size, size_t begin, size_t end )
+                         int level, ssize_t begin, ssize_t end )
 {
     if (node->array)
     {
@@ -287,16 +283,16 @@ static void update_tree( Bender_Impl *bi, TreeNode *node,
     {
         /* Internal node */
         TreeNode *greatest;
-        size_t k = offset + size/2;
+        ssize_t k = (ssize_t)WINDOW_SIZE(level + 1);
         if (begin < k)
         {
             /* Traverse left subtree */
-            update_tree(bi, node->left, offset, size/2, begin, end);
+            update_tree(bi, node->left, level + 1, begin, end);
         }
         if (end > k)
         {
             /* Traverse right subtree */
-            update_tree(bi, node->right, k, size/2, begin, end);
+            update_tree(bi, node->right, level + 1, begin - k, end - k);
         }
 
         /* Copy maximum value of child nodes to current node. */
@@ -456,7 +452,7 @@ static void resize(Bender_Impl *bi, int new_order)
     create_tree(bi);
 
     /* Update entire tree */
-    update_tree(bi, bi->tree, 0, C, 0, C);
+    update_tree(bi, bi->tree, 0, 0, C);
 }
 
 /* Redistributes window ``win'' at level ``lev'' while inserting a new data
@@ -653,7 +649,7 @@ bool Bender_Impl_insert( Bender_Impl *bi,
     /* debug_check_counts(bi); */
 
     /* Now update tree index to reflect the changes */
-    update_tree(bi, bi->tree, 0, C, 0, C);
+    update_tree(bi, bi->tree, 0, 0, C);
 
     /* debug_dump_tree(bi, "tree.dot"); */
 
