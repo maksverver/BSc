@@ -237,7 +237,7 @@ static void update_tree( Bender_Impl *bi, TreeNode *node,
         if (node->left->size != (size_t)-1 && node->right->size != (size_t)-1)
         {
             greatest = bi->compare( bi->context,
-                                    node->left->data, node->left->size,
+                                    node->left->data,  node->left->size,
                                     node->right->data, node->right->size ) >= 0
                     ? node->left : node->right;
         }
@@ -284,7 +284,7 @@ static size_t find_successor(Bender_Impl *bi,
             *diff = bi->compare( bi->context,
                                  ARRAY_AT(n)->data, ARRAY_AT(n)->size,
                                  data, size );
-            if (*diff >=0)
+            if (*diff >= 0)
             {
                 break;
             }
@@ -349,9 +349,9 @@ static void resize(Bender_Impl *bi, int new_order)
     bi->O = new_order;
 
     /* Create new levels */
-    free(bi->level);
     for (l = 0; l < bi->L; ++l)
         free(bi->level[l].population);
+    free(bi->level);
     bi->L = new_order - log2i(new_order) + 1;
     assert(bi->L >= 2);
     bi->level = malloc(sizeof(Level)*bi->L);
