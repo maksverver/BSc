@@ -75,14 +75,25 @@
 
 static void debug_print_array(Bender_Impl *bi, FILE *fp)
 {
-    size_t n;
+    size_t n, s, total;
     char *p;
-    size_t s;
 
     /* Print population */
+    total = 0;
     for (n = 0; n < C; ++n)
-        fputc((ARRAY_AT(n)->size == (size_t)-1) ? '.' : 'x', fp);
+    {
+        if (ARRAY_AT(n)->size == (size_t)-1)
+        {
+            fputc('.', fp);
+        }
+        else
+        {
+            fputc('x', fp);
+            total += 1;
+        }
+    }
     fputc('\n', fp);
+    fprintf(fp, "Total population: %7d\n", (int)total);
 
     /* Print data */
     for (n = 0; n < C; ++n)
@@ -305,7 +316,7 @@ static void recompute_populations(Bender_Impl *bi, int lev, size_t win)
         return;
 
     /* The windows on levels below the current level have to be recomputed
-    bottom-up. First, compute the lowest-level. */
+       bottom-up. First, compute the lowest-level. */
     p = win*WINDOW_SIZE(lev);
     for (w = (win << (bi->L - 1 - lev)); w < ((win+1) << (bi->L - 1 - lev)); ++w)
     {
@@ -439,7 +450,7 @@ static void insert_and_redistribute (Bender_Impl *bi,
         /* Now move consecutive elements one place to the right to create
            a gap to insert the new element in */
         for (n = p; n > q; --n)
-            ARRAY_COPY(ARRAY_AT(p), ARRAY_AT(p - 1));
+            ARRAY_COPY(ARRAY_AT(n), ARRAY_AT(n - 1));
 
         /* Insert new element in newly created gap */
         ARRAY_AT(q)->size = size;

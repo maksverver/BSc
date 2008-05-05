@@ -62,7 +62,7 @@ static bool set_contains(Bender_Set *set, const void *key_data, size_t key_size)
     Bender_Impl *impl = get_impl(set, key_size);
     impl->compare = set->base.compare;
     impl->context = set->base.context;
-    return Bender_Impl_insert(impl, key_data, key_size);
+    return Bender_Impl_contains(impl, key_data, key_size);
 }
 
 /* Destroys a set data structure, by closing the backing file
