@@ -69,7 +69,8 @@ bool FS_resize(FileStorage *fs, size_t size)
     }
 
     /* Change file size */
-    res = ftruncate(fs->fd, new_size);
+    assert(sizeof(off_t) == sizeof(size_t));
+    res = ftruncate(fs->fd, (off_t)new_size);
     if (res != 0)
         return false;
 
@@ -84,7 +85,7 @@ bool FS_resize(FileStorage *fs, size_t size)
         if (fs->data != NULL)
             munmap(fs->data, old_size);
         fs->data = mmap( NULL, new_size, PROT_READ|PROT_WRITE, MAP_SHARED,
-                         fs->fd, 0 );
+                         fs->fd, (off_t)0 );
         /* FIXME: if this fails, the old mapping is destroyed! */
     }
 

@@ -67,7 +67,6 @@ static bool empty(FileDeque *deque)
 static bool push_back(FileDeque *deque, const void *data, size_t size)
 {
     size_t aligned_size = align(size);
-    char *end;
 
     if (!FS_resize(&deque->fs, deque->end + 2*sizeof(size_t) + aligned_size))
         return false;

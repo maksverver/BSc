@@ -1,13 +1,13 @@
-#include "config.h"
-#include "comparison.h"
-#include "FileStorage.h"
-#include "Set.h"
-#include <assert.h>
-#include <stdio.h>
-#include <stdbool.h>
-#include <string.h>
+/*
+    This implementation uses int-sized sizes/offsets in the stored data
+    structure while the framework uses size_t. As a result the code is a bit
+    messy.
 
-/* Page lay-out:
+    It is still possible to create large files, as long as both the pagesize
+    and the number of pages in the file fit in an int, which seems reasonable.
+*/
+
+/*  Page lay-out:
 
     |---- 'pagesize' bytes ---|
     +------+------+-------+---+
@@ -30,8 +30,18 @@
     (NB. alle indices zero-based)
 */
 
+#include "config.h"
+#include "comparison.h"
+#include "FileStorage.h"
+#include "Set.h"
+#include <assert.h>
+#include <stdio.h>
+#include <stdbool.h>
+#include <string.h>
+
+
 /* Note: these macros assume 'set' is in scope */
-#define DATA(index)     (set->fs.data + (index)*set->pagesize)
+#define DATA(index)     (set->fs.data + (size_t)(index)*set->pagesize)
 #define IDX(p)          ((int*)(DATA(p) + set->pagesize))
 #define COUNT(p)        (IDX(p)[-1])          /* number of values in page */
 #define BEGIN(p, i)     (IDX(p)[-2*(i)-2])    /* offset to start of i-th value */
@@ -44,7 +54,7 @@ typedef struct Btree_Set
 {
     Set     base;
 
-    size_t  pagesize;       /* Size of data pages */
+    int     pagesize;       /* Size of data pages */
     int     pages;          /* Number of pages */
     int     root;           /* Index of root page */
 
@@ -130,7 +140,7 @@ static int create_page(Btree_Set *set)
     int page;
 
     page = set->pages++;
-    resized_ok = FS_resize(&set->fs, set->pages*set->pagesize);
+    resized_ok = FS_resize(&set->fs, (size_t)set->pages*set->pagesize);
     assert(resized_ok);
 
     return page;
@@ -164,7 +174,7 @@ static PageEntry *insert_entry( Btree_Set *set,
     N    = COUNT(page);
     size = END(page, N - 1);
 
-    if (size + entry->size + ISIZE(N+1) <= set->pagesize)
+    if (size + entry->size + ISIZE(N+1) <= (size_t)set->pagesize)
     {
         int k;
 
@@ -175,12 +185,13 @@ static PageEntry *insert_entry( Btree_Set *set,
 
         /* Insert value at position 'pos' */
         k = BEGIN(page, pos);
-        memmove(DATA(page) + k + entry->size, DATA(page) + k, size - k);
-        memcpy(DATA(page) + k, entry->data, entry->size);
+        memmove(DATA(page) + k + entry->size, DATA(page) + k, (size_t)size - k);
+        memcpy(DATA(page) + k, entry->data, (size_t)entry->size);
 
         /* Update index */
         memmove( DATA(page) + set->pagesize - ISIZE(N) - 2*sizeof(int),
-                 DATA(page) + set->pagesize - ISIZE(N), (N - pos)*2*sizeof(int) );
+                 DATA(page) + set->pagesize - ISIZE(N),
+                 sizeof(int)*2*(N - pos)*2 );
         CHILD(page, pos + 1) = entry->child;
         END(page, pos) = k + entry->size;
         while (++pos <= N)
@@ -200,14 +211,14 @@ static PageEntry *insert_entry( Btree_Set *set,
         new_page = create_page(set);
 
         /* Take out middle page */
-        result = make_entry(set, SIZE(page, k), new_page, DATA(page) + BEGIN(page, k));
+        result = make_entry(set, (size_t)SIZE(page, k), new_page, DATA(page) + BEGIN(page, k));
         COUNT(page) = k;
 
         /* Create new page */
         /* NB. This uses some knowledge of the page lay-out */
         COUNT(new_page) = N - (k + 1);
         memcpy(DATA(new_page), DATA(page) + BEGIN(page, k + 1),
-               END(page, N - 1) - BEGIN(page, k + 1));
+               (size_t)END(page, N - 1) - BEGIN(page, k + 1));
         memcpy(DATA(new_page) + set->pagesize - ISIZE(N - (k + 1)),
                DATA(page) - ISIZE(N), 2*sizeof(int)*(N - (k + 1)));
         BEGIN(new_page, 0) = 0;
@@ -217,8 +228,9 @@ static PageEntry *insert_entry( Btree_Set *set,
             CHILD(new_page, n - (k + 1)) = CHILD(page, n);
 
         /* To make debugging easier, set freed space to zero. */
-        memset(DATA(page) + BEGIN(page, k), 0, END(page, N-1) - BEGIN(page, k));
-        memset(DATA(page) + set->pagesize - ISIZE(N), 0, 2*sizeof(int)*(N -k));
+        memset( DATA(page) + BEGIN(page, k), 0,
+                (size_t)END(page, N-1) - BEGIN(page, k) );
+        memset(DATA(page) + set->pagesize - ISIZE(N), 0, sizeof(int)*2*(N -k));
 
         /* NB. insert_entry() will return NULL here, since we have ensured
                enough space is available to insert the entry. */
@@ -248,9 +260,8 @@ static PageEntry *find_or_insert_page( Btree_Set *set, int page,
 
         mid = (n + m)/2;
         d = set->base.compare( set->base.context,
-                               DATA(page) + BEGIN(page, mid), SIZE(page, mid),
-                               key_data, key_size );
-
+                               DATA(page) + BEGIN(page, mid),
+                               (size_t)SIZE(page, mid), key_data, key_size );
         if (d < 0)
         {
             n = mid + 1;
@@ -338,14 +349,14 @@ static bool set_contains(Btree_Set *set, const void *key_data, size_t key_size)
     return find_or_insert(set, key_data, key_size, false);
 }
 
-Set *Btree_Set_create(const char *filepath, size_t pagesize)
+Set *Btree_Set_create(const char *filepath, int pagesize)
 {
     Btree_Set *set;
     char *mem;
     size_t mem_size;
 
     /* Ensure page size is valid */
-    assert(pagesize > ISIZE(4));
+    assert((size_t)pagesize > ISIZE(4));
     assert(pagesize%sizeof(int) == 0);
     assert(pagesize%sizeof(int) == 0);
 
@@ -356,7 +367,7 @@ Set *Btree_Set_create(const char *filepath, size_t pagesize)
 
     /* Temporary memory is needed to copy entries, so an upper bound is:
        H*pagesize/4, where H is the maximum height of the B-tree. */
-    mem_size = 32*pagesize/4;
+    mem_size = (size_t)32*pagesize/4;
     mem = malloc(mem_size);
     if (mem == NULL)
     {

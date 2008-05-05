@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <string.h>
+#include <unistd.h>
 
 /* Set interface to Bender's cache-oblivious set data structure.
 
@@ -91,11 +92,11 @@ Set *Bender_Set_create(const char *filepath)
         int len;
 
         len = snprintf(buf, sizeof(buf), "%s-%02d", filepath, 4 + index);
-        assert(len < sizeof(buf));
+        assert((size_t)len < sizeof(buf));
 
         Bender_Impl_create(&set->impl[index], buf, 16 << index);
 
-        /* TODO: unlink temp files? */
+        unlink(buf);
     }
 
     return &set->base;

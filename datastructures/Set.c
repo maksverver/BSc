@@ -156,7 +156,7 @@ Set *Set_create_from_args(int argc, const char * const *argv)
         break;
 
     case Hash:
-        result = Hash_Set_create(path, capacity);
+        result = Hash_Set_create(path, (size_t)capacity);
         break;
 
     case BDB_Btree:
