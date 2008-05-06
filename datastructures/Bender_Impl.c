@@ -63,7 +63,7 @@
 */
 const double max_density = 0.25;
 
-/* Enable an optimization that makes updates somewhat (~50%) faster.
+/* Enable an optimization that makes updates somewhat (~33%) faster.
 
    Normally, updates are performed by finding the smallest non-overflowing
    window where a new element can be inserted before its successor, and then

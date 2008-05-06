@@ -15,6 +15,8 @@ struct FileStorage
 
     int     fd;             /* Open file descriptor */
     size_t  chunk_size;     /* Allocation chunk size */
+    bool    malloced;       /* True if current data is malloc()ed
+                               instead of mmap()ed */
 };
 
 /* Creates an empty storage area backed by a file with the specified path.
