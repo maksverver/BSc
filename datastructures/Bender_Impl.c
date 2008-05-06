@@ -67,6 +67,9 @@
 /* Convert ArrayNode pointer to index */
 #define ARRAY_IDX(an) (((char*)(an) - bi->fs.data)/(sizeof(ArrayNode) + bi->V))
 
+/* Convert TreeNode pointer to index */
+#define TREE_IDX(tn) (((char*)(tn) - (char*)bi->tree)/(sizeof(TreeNode) + bi->V))
+
 /* Returns the number of elements in each window at the i-th level. */
 #define WINDOW_SIZE(i) ((size_t)1 << (bi->O - (i)))
 
@@ -146,7 +149,7 @@ static void debug_dump_tree(Bender_Impl *bi, const char *filepath)
             buf[len] = '\0';
         }
 
-        fprintf(fp, "\tn%d [shape=plaintext,label=\"%s\"]\n", (int)n, buf);
+        fprintf(fp, "\tn%d [shape=plaintext,label=\"%s (%d)\"]\n", (int)n, buf, (int)n);
     }
 
     /* Output graph configuration */
@@ -164,6 +167,7 @@ static void debug_dump_tree(Bender_Impl *bi, const char *filepath)
             fprintf(fp, "\tn%d -> n%d\n", (int)n, (int)m);
         }
     }
+
     fprintf(fp, "}\n");
     fclose(fp);
 }
@@ -224,50 +228,103 @@ static bool ispow2(unsigned long long x)
     return x && (x&(x - 1)) == 0;
 }
 
-/* Creates a single node of the index tree. */
-static TreeNode *create_tree_node(
-    Bender_Impl *bi, TreeNode *parent,
-    size_t *tree_pos, size_t *array_pos, int level )
+/* Given a node (which is assumed to be a leaf node; i.e. its children
+   are not considered) returns the next leaf node in order or NULL if none. */
+static TreeNode *next_leaf(TreeNode *node)
 {
-    TreeNode *node;
+    /* Go up to the next turning point */
+    while (node->parent != NULL && node == node->parent->right)
+        node = node->parent;
+    if (node->parent == NULL)
+        return NULL;
 
-    /* Allocate a new node */
-    node = (TreeNode*)((char*)bi->tree + *tree_pos*(sizeof(TreeNode) + bi->V));
-    *tree_pos += 1;
-    node->parent = parent;
-    node->size = (size_t)-1;
-
-    if (level == bi->O)
-    {
-        /* Create leaf node */
-        node->left = node->right = NULL;
-        node->array = ARRAY_AT(*array_pos);
-        *array_pos += 1;
-        node->array->tree = node;
-    }
-    else
-    {
-        /* Create interior node */
-        node->left  = create_tree_node( bi, node, tree_pos,
-                                        array_pos, level + 1 );
-        node->right = create_tree_node( bi, node, tree_pos,
-                                        array_pos, level + 1 );
-        node->array = NULL;
-    }
+    /* Now go to the next node in-order */
+    node = node->parent->right;
+    while (node->left != NULL)
+        node = node->left;
 
     return node;
 }
 
-/* Creates the tree index structure.
+/* Creates a tree in van Emde Boas lay-out of the required ``height'',
+   on level ``level'' and returns the root. */
+static TreeNode *create_subtree(
+    Bender_Impl *bi, size_t *tree_pos, size_t *array_pos,
+    int height, int level )
+{
+    if (height == 1)
+    {
+        /* Create a single node */
+        TreeNode *node;
 
-   TODO: change this so the tree is created in van Emde Boas layout.
-*/
+        /* Create a new empty node */
+        node = (TreeNode*)((char*)bi->tree +
+                           *tree_pos*(sizeof(TreeNode) + bi->V));
+        *tree_pos += 1;
+        node->left   = NULL;
+        node->right  = NULL;
+        node->parent = NULL;
+        node->size   = (size_t)-1;
+
+        if (level == bi->O)
+        {
+            /* This node is a leaf node in the complete tree;
+               link it with the corresponding array node. */
+            node->array = ARRAY_AT(*array_pos);
+            *array_pos += 1;
+            node->array->tree = node;
+        }
+        else
+        {
+            node->array = NULL;
+        }
+
+        return node;
+    }
+    else
+    {
+        /* Create a subtree by dividing the height into two halves, first
+           creating the top subtree, and then creating the bottom subtrees,
+           which are connected to the leaf nodes of the top subtree. */
+
+        /* NOTE: if this is slow, we can easily pre-compute the required
+                 splits since height will be small (less than 40 or so). */
+        int top_height, bottom_height;
+        TreeNode *root, *leaf;
+
+        bottom_height = 1;
+        while (2*bottom_height < height)
+            bottom_height *= 2;
+        top_height = height - bottom_height;
+
+        root = create_subtree(bi, tree_pos, array_pos, top_height, level);
+
+        /* Find first leaf node in subtree */
+        leaf = root;
+        while (leaf->left != NULL)
+            leaf = leaf->left;
+
+        /* Create all subtrees */
+        do {
+            leaf->left = create_subtree( bi, tree_pos, array_pos,
+                                         bottom_height, level + top_height );
+            leaf->left->parent = leaf;
+            leaf->right = create_subtree( bi, tree_pos, array_pos,
+                                          bottom_height, level + top_height );
+            leaf->right->parent = leaf;
+        } while ((leaf = next_leaf(leaf)) != NULL);
+
+        return root;
+    }
+}
+
+/* Creates the tree index structure. */
 static void create_tree(Bender_Impl *bi)
 {
     size_t tree_pos, array_pos;
 
     tree_pos = array_pos = 0;
-    create_tree_node(bi, NULL, &tree_pos, &array_pos, 0);
+    create_subtree(bi, &tree_pos, &array_pos, bi->O + 1, 0);
     assert(array_pos == C);
     assert(tree_pos = 2*array_pos - 1);
 }
@@ -440,7 +497,7 @@ static void resize(Bender_Impl *bi, int new_order)
     for (l = 0; l < bi->L; ++l)
     {
         /* FIXME: Bender proposes using a range from 1 to x (x<1) for this!
-                  (I don't see why this is necessary?) */
+                  (Does this improve the cost of rebalancing?) */
         bi->level[l].upper_bound = WINDOW_SIZE(l);
         bi->level[l].population  = malloc(sizeof(size_t)*NUM_WINDOWS(l));
         memset(bi->level[l].population, 0, sizeof(size_t)*NUM_WINDOWS(l));
@@ -458,6 +515,8 @@ static void resize(Bender_Impl *bi, int new_order)
 
     /* Update entire tree */
     update_tree_window(bi, bi->tree, 0, 0, C);
+
+    /* debug_dump_tree(bi, "tree.dot"); */
 }
 
 /* Redistributes window ``win'' at level ``lev'' while inserting a new data
@@ -676,6 +735,7 @@ bool Bender_Impl_insert( Bender_Impl *bi,
                                               key_data, key_size ) < 0));
 
         /* Update complete! */
+        /* debug_dump_tree(bi, "tree.dot"); */
         return false;
     }
 

@@ -9,10 +9,10 @@ datastructures.a: $(OBJECTS)
 	$(AR) rcs "$@" $(OBJECTS)
 
 test-set: datastructures.a test-set.c
-	$(CC) $(LDFLAGS) -o "$@" test-set.c datastructures.a $(LDLIBS)
+	$(CC) $(CFLAGS) $(LDFLAGS) -o "$@" test-set.c datastructures.a $(LDLIBS)
 
 test-deque: datastructures.a test-deque.c
-	$(CC) $(LDFLAGS) -o "$@" test-deque.c datastructures.a $(LDLIBS)
+	$(CC) $(CFLAGS) $(LDFLAGS) -o "$@" test-deque.c datastructures.a $(LDLIBS)
 
 clean:
 	rm -f $(OBJECTS)
