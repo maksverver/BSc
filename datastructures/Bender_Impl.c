@@ -14,13 +14,13 @@
    C = 2^O. (Here ^ denotes exponentation.)
 
    It is then implemented using a sparse array that stores all values in order
-   and an overlaying static search tree in van Emde Boas that isused for fast
-   lookups. A sparse array is an array in which some elements may be empty (or
-   blank values).
+   and an overlaying static search tree in van Emde Boas that is used for fast
+   lookups. A sparse array is an array in which some elements may be empty
+   (i.e. blank values).
 
    The array is subdivided into windows on a number of different levels;
    at each level the array is subdivided in windows with sizes that are powers
-   of 2, ranging from B=log2(C) rounded up to the next power of 2 to C.
+   of 2, ranging from C to log2(C) (rounded up to the next power of 2).
 
    Therefore, there are L=O-ceil(log2(O)) levels (numbered from 0 to L-1);
    level x consists of 2^x windows of size C/(2^x).
@@ -445,9 +445,10 @@ static void overwrite_blank( Bender_Impl *bi, size_t i,
         node->size = size;
         memcpy(node->data, data, size);
         node = node->parent;
-    } while (node != NULL && (node->size == (size_t)-1 ||
+    } while ( node != NULL &&
+              ( node->size == (size_t)-1 ||
                 bi->compare( bi->context, node->data, node->size,
-                                          data, size ) < 0));
+                             data, size ) < 0 ) );
 
     /* debug_dump_tree(bi, "tree.dot"); */
 }
