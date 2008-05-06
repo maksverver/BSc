@@ -50,6 +50,13 @@
 */
 
 
+/* Maximum density on level 0.
+   Since the capacity is doubled when this is exceeded, the minimum density at
+   any time is actually max_density/2.
+*/
+const double max_density = 0.8;
+
+
 /* Returns a pointer to the i-th element in the data array. */
 #define ARRAY_AT(i) ((ArrayNode*)(bi->fs.data+(i)*(sizeof(ArrayNode)+bi->V)))
 
@@ -220,12 +227,6 @@ static int log2i(unsigned long long x)
         return -1;
 
     return (8*sizeof(unsigned long long) - __builtin_clzll(x));
-}
-
-/* Returns wether x is an integer power of 2. */
-static bool ispow2(unsigned long long x)
-{
-    return x && (x&(x - 1)) == 0;
 }
 
 /* Given a node (which is assumed to be a leaf node; i.e. its children
@@ -496,9 +497,8 @@ static void resize(Bender_Impl *bi, int new_order)
     bi->level = malloc(sizeof(Level)*bi->L);
     for (l = 0; l < bi->L; ++l)
     {
-        /* FIXME: Bender proposes using a range from 1 to x (x<1) for this!
-                  (Does this improve the cost of rebalancing?) */
-        bi->level[l].upper_bound = WINDOW_SIZE(l);
+        bi->level[l].upper_bound = (size_t)WINDOW_SIZE(l)*
+            (max_density + (1 - max_density)*l/(bi->L - 1));
         bi->level[l].population  = malloc(sizeof(size_t)*NUM_WINDOWS(l));
         memset(bi->level[l].population, 0, sizeof(size_t)*NUM_WINDOWS(l));
     }
