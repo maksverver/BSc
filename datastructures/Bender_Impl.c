@@ -51,10 +51,30 @@
 
 
 /* Maximum density on level 0.
+
    Since the capacity is doubled when this is exceeded, the minimum density at
    any time is actually max_density/2.
+
+   It isn't clear what the optimal value should be; low values (around 0.2)
+   paradoxically seem to work pretty well (despite the fact that they require
+   a lot of storage space, worst case).
+
+   FIXME: Make this configurable per set instance?
 */
-const double max_density = 0.8;
+const double max_density = 0.25;
+
+/* Enable an optimization that makes updates somewhat (~50%) faster.
+
+   Normally, updates are performed by finding the smallest non-overflowing
+   window where a new element can be inserted before its successor, and then
+   rebalancing this window. This rebalancing operation moves all the elements
+   in the window around.
+
+   Sometimes, we can insert a new element without moving any other element,
+   which also means updating the tree index is easier. This variable enables
+   this optimization, which is not part of Bender's specification.
+*/
+const bool opt_fast_update = true;
 
 
 /* Returns a pointer to the i-th element in the data array. */
@@ -214,7 +234,6 @@ static void debug_check_counts(Bender_Impl *bi)
                          (unsigned long long)pop );
                 abort();
             }
-            assert(bi->level[lev].population[win] == pop);
         }
     }
 }
@@ -392,6 +411,45 @@ static void update_tree_window(
             node->size = (size_t)-1;
         }
     }
+}
+
+/*  Overwrites a blank value in the array with a new value and updates the
+    tree index to reflect the change.
+
+    This is used as an alternative method of inserting new values in the
+    data structure. (See opt_fast_update for a description)
+*/
+static void overwrite_blank( Bender_Impl *bi, size_t i,
+                             const void *data, size_t size )
+{
+    TreeNode *node;
+    int lev;
+    size_t win;
+
+    /* Set value */
+    assert(ARRAY_AT(i)->size == (size_t)-1);
+    ARRAY_AT(i)->size = size;
+    memcpy(ARRAY_AT(i)->data, data, size);
+
+    /* Update population counts */
+    win = 0;
+    for (lev = bi->L - 1; lev >= 0; --lev)
+    {
+        win = i/WINDOW_SIZE(lev);
+        bi->level[lev].population[win] += 1;
+    }
+
+    /* Update tree index */
+    node = ARRAY_AT(i)->tree;
+    do {
+        node->size = size;
+        memcpy(node->data, data, size);
+        node = node->parent;
+    } while (node != NULL && (node->size == (size_t)-1 ||
+                bi->compare( bi->context, node->data, node->size,
+                                          data, size ) < 0));
+
+    /* debug_dump_tree(bi, "tree.dot"); */
 }
 
 /* Returns the index into the data array of the first element not smaller
@@ -689,54 +747,24 @@ bool Bender_Impl_insert( Bender_Impl *bi,
 
     assert(key_size < bi->V);
 
-    if (bi->level[0].population[0] == bi->level[0].upper_bound)
-    {
-        /* Array is full -- resize to next order of size. */
-        resize(bi, bi->O + 1);
-    }
-
     /* First, find successor node */
     i = find_successor(bi, key_data, key_size, &diff);
     if (i < C && diff == 0)
         return true;    /* value already exists */
 
-    /* Find size of gap before successor */
-    j = i;
-    while (j > 0 &&ARRAY_AT(j - 1)->size == (size_t)-1)
-        --j;
-
-    if (j < i)
+    if (opt_fast_update)
     {
-        /* There is a gap before the successor! Insert in the middle. */
-        TreeNode *node;
+        /* Find size of gap before successor */
+        j = i;
+        while (j > 0 && ARRAY_AT(j - 1)->size == (size_t)-1)
+            --j;
 
-        j = (i + j)/2;
-        assert(ARRAY_AT(j)->size == (size_t)-1);
-
-        /* Insert before successor */
-        ARRAY_AT(j)->size = key_size;
-        memcpy(ARRAY_AT(j)->data, key_data, key_size);
-
-        /* Update population counts */
-        for (lev = bi->L - 1; lev >= 0; --lev)
+        if (j < i)
         {
-            win = j/WINDOW_SIZE(lev);
-            bi->level[lev].population[win] += 1;
+            /* Insert in the middle of the gap. */
+            overwrite_blank(bi, (i + j)/2, key_data, key_size);
+            return false;
         }
-
-        /* Update tree index */
-        node = ARRAY_AT(j)->tree;
-        do {
-            node->size = key_size;
-            memcpy(node->data, key_data, key_size);
-            node = node->parent;
-        } while (node != NULL && (node->size == (size_t)-1 ||
-                    bi->compare( bi->context, node->data, node->size,
-                                              key_data, key_size ) < 0));
-
-        /* Update complete! */
-        /* debug_dump_tree(bi, "tree.dot"); */
-        return false;
     }
 
     /* There was no free space; we need to rebalance a window to fit the
@@ -750,14 +778,20 @@ bool Bender_Impl_insert( Bender_Impl *bi,
         if (bi->level[lev].population[win] < bi->level[lev].upper_bound)
             break;
     }
-    assert(lev >= 0); /* No suitable window found -- this is impossible */
+    if (lev < 0)
+    {
+        /* Array is full -- resize to next order of size. */
+        resize(bi, bi->O + 1);
+        lev = 0;
+    }
     assert(win < NUM_WINDOWS(lev));
 
     insert_and_redistribute(bi, lev, win, i, key_data, key_size);
     /* debug_check_counts(bi); */
 
     /* Now update tree index to reflect the changes */
-    update_tree_window(bi, bi->tree, 0, 0, C);
+    update_tree_window( bi, bi->tree, 0,
+                        win*WINDOW_SIZE(lev), (win + 1)*WINDOW_SIZE(lev) );
     /* debug_dump_tree(bi, "tree.dot"); */
 
     return false;
