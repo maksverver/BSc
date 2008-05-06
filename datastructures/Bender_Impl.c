@@ -202,38 +202,24 @@ static void debug_dump_tree(Bender_Impl *bi, const char *filepath)
 /* Verifies the population count of all windows */
 static void debug_check_counts(Bender_Impl *bi)
 {
-    int lev;
     size_t win, pop, n;
 
-    for (lev = 0; lev < bi->L; ++lev)
+    for (win = 0; win < NUM_WINDOWS(bi->L - 1); ++win)
     {
-        for (win = 0; win < NUM_WINDOWS(lev); ++win)
-        {
-            if (lev < bi->L - 1)
-            {
-                /* Check non-lowest level */
-                pop = bi->level[lev + 1].population[2*win + 0] +
-                      bi->level[lev + 1].population[2*win + 1];
-            }
-            else
-            {
-                /* Recompute for lowest-level window */
-                pop = 0;
-                for (n = 0; n < WINDOW_SIZE(lev); ++n)
-                    pop += (ARRAY_AT(win*WINDOW_SIZE(lev) + n)->size
-                            != (size_t)-1);
-            }
+        /* Recompute for lowest-level window */
+        pop = 0;
+        for (n = 0; n < WINDOW_SIZE(bi->L - 1); ++n)
+            pop += (ARRAY_AT(win*WINDOW_SIZE(bi->L - 1) + n)->size != (size_t)-1);
 
-            if (bi->level[lev].population[win] != pop)
-            {
-                fprintf( stderr,
-                         "Window %llu at level %d as incorrect population!"
-                         " (Was: %llu; expected: %llu)\n",
-                         (unsigned long long)win, lev,
-                         (unsigned long long)bi->level[lev].population[win],
-                         (unsigned long long)pop );
-                abort();
-            }
+        if (bi->population[win] != pop)
+        {
+            fprintf( stderr,
+                        "Window %llu has incorrect population!"
+                        " (Was: %llu; expected: %llu)\n",
+                        (unsigned long long)win,
+                        (unsigned long long)bi->population[win],
+                        (unsigned long long)pop );
+            abort();
         }
     }
 }
@@ -423,7 +409,6 @@ static void overwrite_blank( Bender_Impl *bi, size_t i,
                              const void *data, size_t size )
 {
     TreeNode *node;
-    int lev;
     size_t win;
 
     /* Set value */
@@ -431,13 +416,9 @@ static void overwrite_blank( Bender_Impl *bi, size_t i,
     ARRAY_AT(i)->size = size;
     memcpy(ARRAY_AT(i)->data, data, size);
 
-    /* Update population counts */
-    win = 0;
-    for (lev = bi->L - 1; lev >= 0; --lev)
-    {
-        win = i/WINDOW_SIZE(lev);
-        bi->level[lev].population[win] += 1;
-    }
+    /* Update population count */
+    win = i/WINDOW_SIZE(bi->L - 1);
+    bi->population[win] += 1;
 
     /* Update tree index */
     node = ARRAY_AT(i)->tree;
@@ -451,6 +432,19 @@ static void overwrite_blank( Bender_Impl *bi, size_t i,
                              data, size ) < 0 ) );
 
     /* debug_dump_tree(bi, "tree.dot"); */
+}
+
+/* Returns the population count for window ``win'' of level ``lev''. */
+static size_t count(Bender_Impl *bi, int lev, size_t win)
+{
+    size_t i, j, N;
+
+    i =  win      << (bi->L - 1 - lev);
+    j = (win + 1) << (bi->L - 1 - lev);
+    N = 0;
+    do N += bi->population[i]; while (++i < j);
+
+    return N;
 }
 
 /* Returns the index into the data array of the first element not smaller
@@ -492,38 +486,21 @@ static size_t find_successor(Bender_Impl *bi,
     return ARRAY_IDX(node->array);
 }
 
-/* Recomputes population counts of all levels below (excluding!) ``lev''
-   in the windows overlapping ``win'' on level ``lev''. */
-static void recompute_populations(Bender_Impl *bi, int lev, size_t win)
+/* Recomputes the population count for windows in range [i:j) */
+static void recompute_populations(Bender_Impl *bi, size_t i, size_t j)
 {
-    size_t p, w, n;
-    int l;
+    size_t p, n;
 
-    /* If we are the lowest level, are no lower levels. */
-    if (lev == bi->L - 1)
-        return;
-
-    /* The windows on levels below the current level have to be recomputed
-       bottom-up. First, compute the lowest-level. */
-    p = win*WINDOW_SIZE(lev);
-    for (w = (win << (bi->L - 1 - lev)); w < ((win+1) << (bi->L - 1 - lev)); ++w)
+    p = i*WINDOW_SIZE(bi->L - 1);
+    while (i < j)
     {
-        bi->level[bi->L - 1].population[w] = 0;
+        bi->population[i] = 0;
         for (n = 0; n < WINDOW_SIZE(bi->L-1); ++n)
         {
-            bi->level[bi->L - 1].population[w] += ARRAY_AT(p)->size != (size_t)-1;
+            bi->population[i] += ARRAY_AT(p)->size != (size_t)-1;
             p += 1;
         }
-    }
-
-    /* Recompute for higher levels */
-    for (l = bi->L-2; l > lev; --l)
-    {
-        for (w = (win << (l - lev)); w < ((win+1) << (l - lev)); ++w)
-        {
-            bi->level[l].population[w] = bi->level[l + 1].population[2*w + 0] +
-                                        bi->level[l + 1].population[2*w + 1];
-        }
+        ++i;
     }
 }
 
@@ -548,24 +525,19 @@ static void resize(Bender_Impl *bi, int new_order)
     bi->O = new_order;
 
     /* Create new levels */
-    for (l = 0; l < bi->L; ++l)
-        free(bi->level[l].population);
     free(bi->level);
-    bi->L = new_order - log2i(new_order) + 1;
+    bi->L          = new_order - log2i(new_order) + 1;
     assert(bi->L >= 2);
-    bi->level = malloc(sizeof(Level)*bi->L);
+    bi->level      = malloc(sizeof(Level)*bi->L);
+    bi->population = malloc(sizeof(size_t)*NUM_WINDOWS(bi->L - 1));
     for (l = 0; l < bi->L; ++l)
     {
         bi->level[l].upper_bound = (size_t)WINDOW_SIZE(l)*
             (max_density + (1 - max_density)*l/(bi->L - 1));
-        bi->level[l].population  = malloc(sizeof(size_t)*NUM_WINDOWS(l));
-        memset(bi->level[l].population, 0, sizeof(size_t)*NUM_WINDOWS(l));
     }
 
     /* Recompute population counts */
-    recompute_populations(bi, 0, 0);
-    bi->level[0].population[0] = bi->level[1].population[0] +
-                                 bi->level[1].population[1];
+    recompute_populations(bi, 0, NUM_WINDOWS(bi->L - 1));
 
     /* Recreate tree index */
     bi->tree = (TreeNode*)( bi->fs.data +
@@ -578,14 +550,13 @@ static void resize(Bender_Impl *bi, int new_order)
     /* debug_dump_tree(bi, "tree.dot"); */
 }
 
-/* Redistributes window ``win'' at level ``lev'' while inserting a new data
-   element (described by ``data'' and ``size'' at index ``idx''. The caller
-   must ensure that the window has a a free slot. */
+/* Redistributes window ``win'' at level ``lev'' containing ``N'' elements
+   while inserting a new data element (described by ``data'' and ``size'')
+   at index ``idx''. The caller must ensure that the window has a free slot. */
 static void insert_and_redistribute (Bender_Impl *bi,
-    int lev, size_t win, size_t idx, const void *data, size_t size )
+    int lev, size_t win, size_t idx, size_t N, const void *data, size_t size )
 {
-    size_t begin, end, n, p, q, w, W, N, gap_space, gap_extra;
-    int l;
+    size_t begin, end, n, p, q, W, gap_space, gap_extra;
 
     W = WINDOW_SIZE(lev);
     begin = win*W;
@@ -673,7 +644,7 @@ static void insert_and_redistribute (Bender_Impl *bi,
         as elements are divided roughly evenly among windows of the lower
         levels.)
     */
-    N = bi->level[lev].population[win] + 1;
+    N += 1;
     gap_space = (W - N)/(N + 1);
     gap_extra = (W - N)%(N + 1);
 
@@ -703,15 +674,9 @@ static void insert_and_redistribute (Bender_Impl *bi,
         ARRAY_AT(p)->size = (size_t)-1;
     }
 
-    /* Update population counts. On the current level and all higher levels
-       (with larger windows) only one window changes. */
-    w = win;
-    for (l = lev; l >= 0; --l)
-    {
-        bi->level[l].population[w] += 1;
-        w /= 2;
-    }
-    recompute_populations(bi, lev, win);
+    /* Update population counts. */
+    recompute_populations( bi, win << (bi->L - 1 - lev),
+                               (win + 1) << (bi->L - 1 - lev) );
 }
 
 
@@ -743,7 +708,7 @@ void Bender_Impl_destroy(Bender_Impl *bi)
 bool Bender_Impl_insert( Bender_Impl *bi,
                          const void *key_data, size_t key_size )
 {
-    size_t i, j, win;
+    size_t i, j, win, N;
     int lev, diff;
 
     assert(key_size < bi->V);
@@ -773,12 +738,11 @@ bool Bender_Impl_insert( Bender_Impl *bi,
     j = (i == C) ? i - 1 : i;
 
     /* Find a suitable window */
-    for (lev = bi->L - 1; lev >= 0; --lev)
-    {
+    lev = bi->L - 1;
+    do {
         win = j/WINDOW_SIZE(lev);
-        if (bi->level[lev].population[win] < bi->level[lev].upper_bound)
-            break;
-    }
+        N = count(bi, lev, win);
+    } while (N >= bi->level[lev].upper_bound && --lev >= 0);
     if (lev < 0)
     {
         /* Array is full -- resize to next order of size. */
@@ -787,7 +751,7 @@ bool Bender_Impl_insert( Bender_Impl *bi,
     }
     assert(win < NUM_WINDOWS(lev));
 
-    insert_and_redistribute(bi, lev, win, i, key_data, key_size);
+    insert_and_redistribute(bi, lev, win, i, N, key_data, key_size);
     /* debug_check_counts(bi); */
 
     /* Now update tree index to reflect the changes */

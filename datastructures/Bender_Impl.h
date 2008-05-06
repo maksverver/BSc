@@ -43,7 +43,6 @@ struct TreeNode
 struct Level
 {
     size_t  upper_bound;
-    size_t  *population;
 };
 
 struct Bender_Impl
@@ -53,6 +52,7 @@ struct Bender_Impl
 
     int         L;          /* Number of levels */
     Level       *level;
+    size_t      *population;
 
     TreeNode    *tree;
     FileStorage fs;
