@@ -525,14 +525,15 @@ static void resize(Bender_Impl *bi, int new_order)
     bi->O = new_order;
 
     /* Create new levels */
-    free(bi->level);
-    bi->L          = new_order - log2i(new_order) + 1;
+    free(bi->upper_bound);
+    free(bi->population);
+    bi->L = new_order - log2i(new_order) + 1;
     assert(bi->L >= 2);
-    bi->level      = malloc(sizeof(Level)*bi->L);
-    bi->population = malloc(sizeof(size_t)*NUM_WINDOWS(bi->L - 1));
+    bi->upper_bound = malloc(sizeof(size_t)*bi->L);
+    bi->population  = malloc(sizeof(size_t)*NUM_WINDOWS(bi->L - 1));
     for (l = 0; l < bi->L; ++l)
     {
-        bi->level[l].upper_bound = (size_t)WINDOW_SIZE(l)*
+        bi->upper_bound[l] = (size_t)WINDOW_SIZE(l)*
             (max_density + (1 - max_density)*l/(bi->L - 1));
     }
 
@@ -693,10 +694,11 @@ void Bender_Impl_create( Bender_Impl *bi,
     assert(ok);
 
     /* Initialize structure */
-    bi->V     = value_size;
-    bi->O     = 0;
-    bi->L     = 0;
-    bi->level = NULL;
+    bi->V = value_size;
+    bi->O = 0;
+    bi->L = 0;
+    bi->upper_bound = NULL;
+    bi->population  = NULL;
     resize(bi, 4);
 }
 
@@ -742,7 +744,7 @@ bool Bender_Impl_insert( Bender_Impl *bi,
     do {
         win = j/WINDOW_SIZE(lev);
         N = count(bi, lev, win);
-    } while (N >= bi->level[lev].upper_bound && --lev >= 0);
+    } while (N >= bi->upper_bound[lev] && --lev >= 0);
     if (lev < 0)
     {
         /* Array is full -- resize to next order of size. */

@@ -11,7 +11,6 @@
 */
 
 typedef struct Bender_Impl  Bender_Impl;
-typedef struct Level        Level;
 typedef struct ArrayNode    ArrayNode;
 typedef struct TreeNode     TreeNode;
 
@@ -40,19 +39,14 @@ struct TreeNode
     char      data[];
 };
 
-struct Level
-{
-    size_t  upper_bound;
-};
-
 struct Bender_Impl
 {
     size_t      V;          /* Size of values */
     int         O;          /* Order (capacity == pow(2,order)) */
 
-    int         L;          /* Number of levels */
-    Level       *level;
-    size_t      *population;
+    int         L;              /* Number of levels */
+    size_t      *upper_bound;   /* Population upper bound per level */
+    size_t      *population;    /* Population per window */
 
     TreeNode    *tree;
     FileStorage fs;
