@@ -62,8 +62,12 @@ void *FS_resize(FileStorage *fs, void *data, size_t size)
     /* Change file size */
     assert(sizeof(off_t) == sizeof(size_t));
     res = ftruncate(fs->fd, (off_t)new_size);
+    /* truncation may fail for special files like /dev/zero; in that case,
+       this not an error. (If it is, then mmap/mremap will fail later on) */
+    /*
     if (res != 0)
         return NULL;
+    */
 
     /* Remap memory */
     if (HAVE_MREMAP && data != NULL)

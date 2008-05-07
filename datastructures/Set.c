@@ -34,11 +34,12 @@ typedef enum SetType {
 
     Optional arguments:
 
-    [malloc]
-    Use the malloc allocator (default)
-
     [mmap]
-    Use the mmap (file backed) allocator
+    Use the mmap (file backed) allocator (default)
+
+    [malloc]
+    Use the malloc allocator
+
 */
 Set *Set_create_from_args(int argc, const char * const *argv)
 {
@@ -139,7 +140,7 @@ Set *Set_create_from_args(int argc, const char * const *argv)
 
     /* Set default allocator */
     if (allocator == NULL)
-        allocator = Allocator_malloc;
+        allocator = Allocator_mmap;
 
     switch (type)
     {

@@ -107,7 +107,7 @@ int main(int argc, char *argv[])
     }
 
     /* Create deque data structure */
-    deque = Memory_Deque_create();
+    deque = File_Deque_create("/dev/zero");
     if (deque == NULL)
     {
         perror("Could not create deque");
