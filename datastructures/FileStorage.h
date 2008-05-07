@@ -9,12 +9,9 @@ typedef struct FileStorage FileStorage;
 /* Models a memory-mapped storage area backed by a file. */
 struct FileStorage
 {
-    char    *data;          /* Memory mapped data */
     size_t  size;           /* Size of memory used */
     size_t  capacity;       /* Size of memory allocated */
-
     int     fd;             /* Open file descriptor */
-    size_t  chunk_size;     /* Allocation chunk size */
 };
 
 /* Creates an empty storage area backed by a file with the specified path.
@@ -23,7 +20,7 @@ struct FileStorage
 bool FS_create(FileStorage *fs, const char *path);
 
 /* Releases all associated resources */
-void FS_destroy(FileStorage *fs);
+void FS_destroy(FileStorage *fs, void *data);
 
 /* Resizes the used memory size.
    This may cause the underlying file to be extended, in which case ``data''
@@ -31,6 +28,6 @@ void FS_destroy(FileStorage *fs);
 
    Returns true if the request was completed succesfully, or returns false and
    sets errno. */
-bool FS_resize(FileStorage *fs, size_t new_size);
+void *FS_resize(FileStorage *fs, void *data, size_t new_size);
 
 #endif /* ndef FILE_STORAGE_H_INCLUDED */

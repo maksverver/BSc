@@ -37,7 +37,8 @@ struct FileDeque
     size_t      count;                  /* Number of elements */
     size_t      begin;                  /* Offset to start of data */
     size_t      end;                    /* Offset to end of data */
-    FileStorage fs;
+    char        *data;                  /* Allocated data */
+    FileStorage fs;                     /* FileStorage for allocated data */
 };
 
 /* Rounds argument up to a multiple of sizeof(size_t) */
@@ -50,7 +51,7 @@ static size_t align(size_t size)
 
 static void destroy(FileDeque *deque)
 {
-    FS_destroy(&deque->fs);
+    FS_destroy(&deque->fs, deque->data);
     free(deque);
 }
 
@@ -67,13 +68,19 @@ static bool empty(FileDeque *deque)
 static bool push_back(FileDeque *deque, const void *data, size_t size)
 {
     size_t aligned_size = align(size);
+    void *new_data;
 
-    if (!FS_resize(&deque->fs, deque->end + 2*sizeof(size_t) + aligned_size))
+    /* Reallocate deque */
+    new_data = FS_resize( &deque->fs, deque->data,
+                          deque->end + 2*sizeof(size_t) + aligned_size );
+    if (new_data == NULL)
         return false;
+    deque->data = new_data;
 
-    *(size_t*)(deque->fs.data + deque->end) = size;
-    memcpy(deque->fs.data + deque->end + sizeof(size_t), data, size);
-    *(size_t*)(deque->fs.data + deque->end +
+    /* Append item */
+    *(size_t*)(deque->data + deque->end) = size;
+    memcpy(deque->data + deque->end + sizeof(size_t), data, size);
+    *(size_t*)(deque->data + deque->end +
                sizeof(size_t) + aligned_size) = size;
     deque->end += 2*sizeof(size_t) + aligned_size;
     ++deque->count;
@@ -92,8 +99,8 @@ static bool get_back(FileDeque *deque, const void **data, size_t *size)
     if (deque->count == 0)
         return false;
 
-    *size = *(size_t*)(deque->fs.data + deque->end - sizeof(size_t));
-    *data = deque->fs.data + deque->end - sizeof(size_t) - align(*size);
+    *size = *(size_t*)(deque->data + deque->end - sizeof(size_t));
+    *data = deque->data + deque->end - sizeof(size_t) - align(*size);
     return true;
 }
 
@@ -102,8 +109,8 @@ static bool get_front(FileDeque *deque, const void **data, size_t *size)
     if (deque->count == 0)
         return false;
 
-    *size = *(size_t*)(deque->fs.data + deque->begin);
-    *data = deque->fs.data + deque->begin + sizeof(size_t);
+    *size = *(size_t*)(deque->data + deque->begin);
+    *data = deque->data + deque->begin + sizeof(size_t);
     return true;
 }
 
@@ -114,7 +121,7 @@ static bool pop_back(FileDeque *deque)
     if (deque->count == 0)
         return false;
 
-    size = *((size_t*)(deque->fs.data + deque->end) - 1);
+    size = *((size_t*)(deque->data + deque->end) - 1);
     deque->end -= 2*sizeof(size_t) + align(size);
     --deque->count;
 
@@ -128,7 +135,7 @@ static bool pop_front(FileDeque *deque)
     if (deque->count == 0)
         return false;
 
-    size = *(size_t*)(deque->fs.data + deque->begin);
+    size = *(size_t*)(deque->data + deque->begin);
     deque->begin += 2*sizeof(size_t) + align(size);
     --deque->count;
 
@@ -156,6 +163,7 @@ Deque *File_Deque_create(const char *filepath)
     deque->count = 0;
     deque->begin = 0;
     deque->end   = 0;
+    deque->data  = NULL;
 
     if (!FS_create(&deque->fs, filepath))
     {

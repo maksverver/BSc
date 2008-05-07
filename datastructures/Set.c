@@ -9,17 +9,6 @@ typedef enum SetType {
     Btree, Hash, BDB_Unspecified, BDB_Hash, BDB_Btree, Bender
 } SetType;
 
-static const char *make_tempfile()
-{
-    int res;
-    static char path[] = "db-XXXXXX";
-
-    res = mkstemp(path);
-    assert(res >= 0);
-    close(res);
-
-    return path;
-}
 
 /*  Creates a set data structure from a string description.
     Arguments between square brackets are optional.
@@ -34,36 +23,35 @@ static const char *make_tempfile()
     "hash [capacity=C] .."
     Creates a hash table based with capacity C items (default: 1,000,000).
 
-    "BerkeleyDB btree .."
+    "BerkeleyDB path=FP btree .."
     Creates a BerkeleyDB B-tree based set.
 
-    "BerkeleyDB hash .."
+    "BerkeleyDB path=FP hash .."
     Creates a BerkeleyDB hash table based set.
 
     "Bender"
     Creates a cache-oblivious set (as proposed by Bender et al.)
 
-    Common arguments:
-    ".. [file=path]"
-    Specifies a path to use to create the backing file. Note that if this
-    file exists, it will be overwritten! If no file is specified, a file is
-    created in the working directory.
+    Optional arguments:
 
-    ".. [keep]"
-    Keep the temporary file (i.e. do not unlink it after creation).
+    [malloc]
+    Use the malloc allocator (default)
+
+    [mmap]
+    Use the mmap (file backed) allocator
 */
 Set *Set_create_from_args(int argc, const char * const *argv)
 {
     SetType type;
-    int pagesize, capacity, keep;
+    int pagesize, capacity;
     char *path;
     Set *result;
+    Allocator *allocator = NULL;
 
     if (argc < 1)
         return NULL;
 
     path = NULL;
-    keep = 0;
 
     if (strcmp(*argv, "btree") == 0)
     {
@@ -123,15 +111,24 @@ Set *Set_create_from_args(int argc, const char * const *argv)
                 return NULL;
         }
         else
-        if (path == NULL && sscanf(*argv, "file=%as", &path))
+        if (path == NULL && sscanf(*argv, "file=%as", &path) == 1)
         {
             if (path == NULL)
                 return NULL;
         }
         else
-        if (strcmp(*argv, "keep") == 0)
+        if (strcmp(*argv, "malloc") == 0)
         {
-            keep = 1;
+            if (allocator != NULL)
+                return NULL;
+            allocator = Allocator_malloc;
+        }
+        else
+        if (strcmp(*argv, "mmap") == 0)
+        {
+            if (allocator != NULL)
+                return NULL;
+            allocator = Allocator_mmap;
         }
         else
         {
@@ -140,35 +137,34 @@ Set *Set_create_from_args(int argc, const char * const *argv)
         }
     }
 
-    if (path == NULL)
-    {
-        /* Create temporary file (and strdup() so we can free() it later) */
-        path = (char*)make_tempfile();
-        assert(path != NULL);
-        path = strdup(path);
-        assert(path != NULL);
-    }
+    /* Set default allocator */
+    if (allocator == NULL)
+        allocator = Allocator_malloc;
 
     switch (type)
     {
     case Btree:
-        result = Btree_Set_create(path, pagesize);
+        result = Btree_Set_create(allocator, pagesize);
         break;
 
     case Hash:
-        result = Hash_Set_create(path, (size_t)capacity);
+        result = Hash_Set_create(allocator, (size_t)capacity);
         break;
 
     case BDB_Btree:
+        if (path == NULL)
+            return NULL;
         result = BDB_Btree_Set_create(path);
         break;
 
     case BDB_Hash:
+        if (path == NULL)
+            return NULL;
         result = BDB_Hash_Set_create(path);
         break;
 
     case Bender:
-        result = Bender_Set_create(path);
+        result = Bender_Set_create(allocator);
         break;
 
     default:
@@ -177,9 +173,5 @@ Set *Set_create_from_args(int argc, const char * const *argv)
         break;
     }
 
-    if (!keep || !result)
-        unlink(path);
-
-    free(path);
     return result;
 }

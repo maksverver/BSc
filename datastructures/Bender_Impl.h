@@ -1,7 +1,7 @@
 #ifndef BENDER_IMPL_H_INCLUDED
 #define BENDER_IMPL_H_INCLUDED
 
-#include "FileStorage.h"
+#include "Alloc.h"
 
 /* Implementation of Bender's cache-oblivious set data structure.
 
@@ -41,15 +41,15 @@ struct TreeNode
 
 struct Bender_Impl
 {
-    size_t      V;          /* Size of values */
-    int         O;          /* Order (capacity == pow(2,order)) */
-
+    size_t      V;              /* Size of values */
+    int         O;              /* Order (capacity == pow(2,order)) */
     int         L;              /* Number of levels */
     size_t      *upper_bound;   /* Population upper bound per level */
     size_t      *population;    /* Population per window */
-
-    TreeNode    *tree;
-    FileStorage fs;
+    TreeNode    *tree;          /* Pointer to index tree root */
+    char        *data;          /* Allocated data */
+    Allocator   *allocator;     /* Allocator function */
+    Alloc       alloc;          /* Allocator context */
 
     /* Custom comparison function */
     int (*compare)(const void *, const void *, size_t, const void *, size_t);
@@ -58,7 +58,7 @@ struct Bender_Impl
 
 /* Create a Bender set implementation. */
 void Bender_Impl_create( Bender_Impl *bi,
-                         const char *filepath, size_t value_size );
+                         Allocator *allocator, size_t value_size );
 
 /* Destroy a Bender set implementation and free all associated resources. */
 void Bender_Impl_destroy(Bender_Impl *bi);

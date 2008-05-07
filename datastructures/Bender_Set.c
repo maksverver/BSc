@@ -77,7 +77,7 @@ static void set_destroy(Bender_Set *set)
 }
 
 /* Creates a set data structure. */
-Set *Bender_Set_create(const char *filepath)
+Set *Bender_Set_create(Allocator *allocator)
 {
     Bender_Set *set;
     int index;
@@ -95,17 +95,7 @@ Set *Bender_Set_create(const char *filepath)
 
     /* Create statically sized sets */
     for (index = 0; index < 12; ++index)
-    {
-        char buf[1024];
-        int len;
-
-        len = snprintf(buf, sizeof(buf), "%s-%02d", filepath, 4 + index);
-        assert((size_t)len < sizeof(buf));
-
-        Bender_Impl_create(&set->impl[index], buf, 16 << index);
-
-        unlink(buf);
-    }
+        Bender_Impl_create(&set->impl[index], allocator, 16 << index);
 
     return &set->base;
 }

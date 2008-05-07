@@ -14,12 +14,8 @@
 bool FS_create(FileStorage *fs, const char *path)
 {
     int fd;
-    long chunk_size;
 
-    /* Get page size (used as the allocation chunk size) */
-    chunk_size = sysconf(_SC_PAGESIZE);
-    if (chunk_size <= 0)
-        return false;
+    assert(ALLOC_CHUNK_SIZE > 0);
 
     /* Open the file */
     fd = open(path, O_CREAT | O_RDWR, 0666);
@@ -27,26 +23,21 @@ bool FS_create(FileStorage *fs, const char *path)
         return false;
 
     /* Initialize FileStorage structure */
-    fs->data       = NULL;
     fs->size       = 0;
     fs->capacity   = 0;
     fs->fd         = fd;
-    fs->chunk_size = (size_t)chunk_size;
 
     return true;
 }
 
-void FS_destroy(FileStorage *fs)
+void FS_destroy(FileStorage *fs, void *data)
 {
-    if (fs->data != NULL)
-    {
-        munmap(fs->data, fs->size);
-        fs->data = NULL;
-    }
+    if (data != NULL)
+        munmap(data, fs->size);
     close(fs->fd);
 }
 
-bool FS_resize(FileStorage *fs, size_t size)
+void *FS_resize(FileStorage *fs, void *data, size_t size)
 {
     int res;
     size_t old_size, new_size;
@@ -55,51 +46,47 @@ bool FS_resize(FileStorage *fs, size_t size)
     if (size <= fs->capacity)
     {
         fs->size = size;
-        return true;
+        return data;
     }
 
     /* Round desired size up to the next page boundary. */
     old_size = fs->capacity;
     new_size = size;
-    if (new_size%fs->chunk_size != 0)
+    if (new_size%ALLOC_CHUNK_SIZE != 0)
     {
-        new_size += fs->chunk_size - new_size%fs->chunk_size;
+        new_size += ALLOC_CHUNK_SIZE - new_size%ALLOC_CHUNK_SIZE;
         if (new_size < size)
-            return false;   /* overflow */
+            return NULL;   /* overflow */
     }
 
     /* Change file size */
     assert(sizeof(off_t) == sizeof(size_t));
     res = ftruncate(fs->fd, (off_t)new_size);
     if (res != 0)
-        return false;
+        return NULL;
 
     /* Remap memory */
-    if (HAVE_MREMAP && fs->data != NULL)
+    if (HAVE_MREMAP && data != NULL)
     {
-        fs->data = mremap(fs->data, old_size, new_size, MREMAP_MAYMOVE);
+        data = mremap(data, old_size, new_size, MREMAP_MAYMOVE);
         /* FIXME: If this fails, does the old mapping still exist? */
     }
     else
     {
-        if (fs->data != NULL)
-            munmap(fs->data, old_size);
-        fs->data = mmap( NULL, new_size, PROT_READ|PROT_WRITE, MAP_SHARED,
-                         fs->fd, (off_t)0 );
+        if (data != NULL)
+            munmap(data, old_size);
+        data = mmap( NULL, new_size, PROT_READ|PROT_WRITE, MAP_PRIVATE,
+                     fs->fd, (off_t)0 );
         /* FIXME: if this fails, the old mapping is destroyed! */
     }
 
     /* Check wether remapping was succesful.*/
-    if (fs->data == NULL || fs->data == MAP_FAILED)
-    {
-        perror("FileStorage.c: mmap/mremap failed");
-        abort();
-        return false;
-    }
+    if (data == NULL || data == MAP_FAILED)
+        return NULL;
 
     /* Update size/capacity */
     fs->size     = size;
     fs->capacity = new_size;
 
-    return true;
+    return data;
 }

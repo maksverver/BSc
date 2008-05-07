@@ -3,6 +3,7 @@
 
 #include <stdbool.h>
 #include <stdlib.h>
+#include "Alloc.h"
 
 typedef struct Set Set;
 
@@ -56,13 +57,13 @@ Set *BDB_Btree_Set_create(const char *filepath);
 Set *BDB_Hash_Set_create(const char *filepath);
 
 /* Creates a set data structure backed by a custom B-tree implementation. */
-Set *Btree_Set_create(const char *filepath, int pagesize);
+Set *Btree_Set_create(Allocator *alloc, int pagesize);
 
 /* Creates a set data structure backed by a custom hash table implementation. */
-Set *Hash_Set_create(const char *filepath, size_t capacity);
+Set *Hash_Set_create(Allocator *alloc, size_t capacity);
 
 /* Creates a cache-oblivious set data structure backed as proposed by
    Bender at al. in "A locality-preserving cache-oblivious data structure". */
-Set *Bender_Set_create(const char *filepath);
+Set *Bender_Set_create(Allocator *alloc);
 
 #endif /* ndef SET_H_INCLUDED */

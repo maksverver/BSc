@@ -78,7 +78,7 @@ const bool opt_fast_update = true;
 
 
 /* Returns a pointer to the i-th element in the data array. */
-#define ARRAY_AT(i) ((ArrayNode*)(bi->fs.data+(i)*(sizeof(ArrayNode)+bi->V)))
+#define ARRAY_AT(i) ((ArrayNode*)(bi->data+(i)*(sizeof(ArrayNode)+bi->V)))
 
 /* Copy value of ArrayNode *q to ArrayNode *p while keeping the pointer data
    unmodified. */
@@ -92,7 +92,7 @@ const bool opt_fast_update = true;
     } while(0);
 
 /* Convert ArrayNode pointer to index */
-#define ARRAY_IDX(an) (((char*)(an) - bi->fs.data)/(sizeof(ArrayNode) + bi->V))
+#define ARRAY_IDX(an) (((char*)(an) - bi->data)/(sizeof(ArrayNode) + bi->V))
 
 /* Convert TreeNode pointer to index */
 #define TREE_IDX(tn) (((char*)(tn) - (char*)bi->tree)/(sizeof(TreeNode) + bi->V))
@@ -513,15 +513,14 @@ static void recompute_populations(Bender_Impl *bi, size_t i, size_t j)
 
 static void resize(Bender_Impl *bi, int new_order)
 {
-    bool ok;
     int l;
     size_t n;
 
     /* Resize file; we need C array elements and 2*C-1 tree nodes. */
-    ok = FS_resize(&bi->fs,
+    bi->data = (*bi->allocator)(&bi->alloc, bi->data, 
         ((sizeof(ArrayNode) + bi->V)<<new_order) +
         2*((sizeof(TreeNode) + bi->V)<<(new_order)) - 1);
-    assert(ok);
+    assert(bi->data != NULL);
 
     /* Write blank values to the new part of the array */
     for ( n = (bi->O > 0) ? ((size_t)1 << (bi->O)) : 0;
@@ -548,8 +547,8 @@ static void resize(Bender_Impl *bi, int new_order)
     recompute_populations(bi, 0, NUM_WINDOWS(bi->L - 1));
 
     /* Recreate tree index */
-    bi->tree = (TreeNode*)( bi->fs.data +
-                            ((sizeof(ArrayNode) + bi->V)<<new_order) );
+    bi->tree = (TreeNode*)(bi->data +
+                          ((sizeof(ArrayNode) + bi->V)<<new_order));
     create_tree(bi);
 
     /* Update entire tree */
@@ -689,16 +688,10 @@ static void insert_and_redistribute (Bender_Impl *bi,
 
 
 void Bender_Impl_create( Bender_Impl *bi,
-                         const char *filepath, size_t value_size )
+                         Allocator *allocator, size_t value_size )
 {
-    bool ok;
-
     /* Check for valid size (positive integer multiple of sizeof(size_t)) */
     assert(value_size > 0 && value_size%sizeof(size_t) == 0);
-
-    /* Open file */
-    ok = FS_create(&bi->fs, filepath);
-    assert(ok);
 
     /* Initialize structure */
     bi->V = value_size;
@@ -706,12 +699,14 @@ void Bender_Impl_create( Bender_Impl *bi,
     bi->L = 0;
     bi->upper_bound = NULL;
     bi->population  = NULL;
+    bi->data        = NULL;
+    bi->allocator   = allocator;
     resize(bi, 4);
 }
 
 void Bender_Impl_destroy(Bender_Impl *bi)
 {
-    FS_destroy(&bi->fs);
+    (*bi->allocator)(&bi->alloc, bi->data, 0);
 }
 
 bool Bender_Impl_insert( Bender_Impl *bi,

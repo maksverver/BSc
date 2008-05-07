@@ -9,7 +9,7 @@
 
 #include "config.h"
 #include "comparison.h"
-#include "FileStorage.h"
+#include "Alloc.h"
 #include "Set.h"
 #include <assert.h>
 #include <stdio.h>
@@ -40,7 +40,7 @@
 */
 
 /* Note: these macros assume 'set' is in scope */
-#define DATA(index)     (set->fs.data + (index)*set->pagesize)
+#define DATA(index)     (set->data + (index)*set->pagesize)
 #define IDX(p)          ((int*)(DATA(p) + set->pagesize))
 #define COUNT(p)        (IDX(p)[-1])          /* number of values in page */
 #define BEGIN(p, i)     (IDX(p)[-2*(i)-2])    /* offset to start of i-th value */
@@ -51,18 +51,20 @@
 
 typedef struct Btree_Set
 {
-    Set     base;
+    Set         base;
 
-    size_t  pagesize;       /* Size of data pages */
-    int     pages;          /* Number of pages */
-    int     root;           /* Index of root page */
+    size_t      pagesize;       /* Size of data pages */
+    int         pages;          /* Number of pages */
+    int         root;           /* Index of root page */
 
-    FileStorage fs;         /* File storage */
+    char        *data;          /* Allocated data */
+    Allocator   *allocator;     /* Allocator function */
+    Alloc       alloc;          /* Allocator context */
 
     /* Temporary memory pool */
-    char    *mem;           /* Allocated memory pool */
-    size_t  mem_size;       /* Total amount of memory allocated */
-    size_t  mem_used;       /* Memory used (set to zero before each operation) */
+    char        *mem;           /* Allocated memory pool */
+    size_t      mem_size;       /* Total amount of memory allocated */
+    size_t      mem_used;       /* Memory used (set to zero before each operation) */
 } Btree_Set;
 
 typedef struct PageEntry
@@ -127,7 +129,7 @@ static void *alloc_mem(Btree_Set *set, size_t size)
    and freeing all associated resources. */
 static void set_destroy(Btree_Set *set)
 {
-    FS_destroy(&set->fs);
+    set->allocator(&set->alloc, set->data, 0);
     free(set->mem);
     free(set);
 }
@@ -135,12 +137,11 @@ static void set_destroy(Btree_Set *set)
 /* Allocates a new page and returns its index. */
 static int create_page(Btree_Set *set)
 {
-    bool resized_ok;
     int page;
 
     page = set->pages++;
-    resized_ok = FS_resize(&set->fs, set->pages*set->pagesize);
-    assert(resized_ok);
+    set->data = set->allocator(&set->alloc, set->data, set->pages*set->pagesize);
+    assert(set->data != NULL);
 
     return page;
 }
@@ -347,7 +348,7 @@ static bool set_contains(Btree_Set *set, const void *key_data, size_t key_size)
     return find_or_insert(set, key_data, key_size, false);
 }
 
-Set *Btree_Set_create(const char *filepath, int pagesize)
+Set *Btree_Set_create(Allocator *allocator, int pagesize)
 {
     Btree_Set *set;
     char *mem;
@@ -378,20 +379,14 @@ Set *Btree_Set_create(const char *filepath, int pagesize)
     set->base.contains = (void*)set_contains;
     set->base.compare  = default_compare;
 
-    set->pagesize = pagesize;
-    set->pages    = 0;
-    set->root     = 0;
-    set->mem      = mem;
-    set->mem_size = mem_size;
-    set->mem_used = 0;
-
-    /* Open file */
-    if (!FS_create(&set->fs, filepath))
-    {
-        free(mem);
-        free(set);
-        return NULL;
-    }
+    set->pagesize   = pagesize;
+    set->pages      = 0;
+    set->root       = 0;
+    set->mem        = mem;
+    set->mem_size   = mem_size;
+    set->mem_used   = 0;
+    set->data       = NULL;
+    set->allocator  = allocator;
 
     /* Create root page. */
     create_page(set);
