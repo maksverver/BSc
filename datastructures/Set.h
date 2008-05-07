@@ -70,4 +70,8 @@ Set *Bender_Set_create(Allocator *alloc);
    given file path. This is useful for benchmarking purposes. */
 Set *Mock_Set_create(const char *filepath, bool record);
 
+/* Creates a dummy set data structure that always returns false.
+   This is useful for benchmarking purposes. */
+Set *Dummy_Set_create();
+
 #endif /* ndef SET_H_INCLUDED */

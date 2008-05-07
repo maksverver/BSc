@@ -6,7 +6,7 @@
 #include <unistd.h>
 
 typedef enum SetType {
-    Btree, Hash, BDB_Unspecified, BDB_Hash, BDB_Btree, Bender, Mock
+    Btree, Hash, BDB_Unspecified, BDB_Hash, BDB_Btree, Bender, Mock, Dummy
 } SetType;
 
 
@@ -85,6 +85,11 @@ Set *Set_create_from_args(int argc, const char * const *argv)
     if (strcmp(*argv, "mock") == 0)
     {
         type = Mock;
+    }
+    else
+    if (strcmp(*argv, "dummy") == 0)
+    {
+        type = Dummy;
     }
     else
     {
@@ -199,6 +204,10 @@ Set *Set_create_from_args(int argc, const char * const *argv)
         if (!(record || replay) || path == NULL)
             return NULL;
         result = Mock_Set_create(path, record);
+        break;
+
+    case Dummy:
+        result = Dummy_Set_create();
         break;
 
     default:
