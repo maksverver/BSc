@@ -298,10 +298,17 @@ static TreeNode *create_subtree(
         int top_height, bottom_height;
         TreeNode *root, *leaf;
 
+        /* Bender specifies the size of the bottom tree should be a power
+           of two (without giving a rationale): */
+        /*
         bottom_height = 1;
         while (2*bottom_height < height)
             bottom_height *= 2;
         top_height = height - bottom_height;
+        */
+        /* Instead, we use height/2 which performs slightly better. */
+        top_height = height/2;
+        bottom_height = height - top_height;
 
         root = create_subtree(bi, tree_pos, array_pos, top_height, level);
 
