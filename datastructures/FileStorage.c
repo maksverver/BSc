@@ -32,7 +32,6 @@ bool FS_create(FileStorage *fs, const char *path)
     fs->capacity   = 0;
     fs->fd         = fd;
     fs->chunk_size = (size_t)chunk_size;
-    fs->malloced   = true;
 
     return true;
 }
@@ -41,10 +40,7 @@ void FS_destroy(FileStorage *fs)
 {
     if (fs->data != NULL)
     {
-        if (fs->malloced)
-            free(fs->data);
-        else
-            munmap(fs->data, fs->size);
+        munmap(fs->data, fs->size);
         fs->data = NULL;
     }
     close(fs->fd);
@@ -78,26 +74,6 @@ bool FS_resize(FileStorage *fs, size_t size)
     if (res != 0)
         return false;
 
-    /* Try to use malloc() at first */
-    if (fs->malloced)
-    {
-        char *new_data = realloc(fs->data, new_size);
-
-        if (new_data != NULL)
-        {
-            /* Realloc succeeded */
-            fs->data = new_data;
-            goto alloc_ok;
-        }
-
-        /* Alloc failed; copy to file */
-        lseek(fs->fd, 0, SEEK_SET);
-        write(fs->fd, fs->data, old_size);
-        free(fs->data);
-        fs->data = NULL;
-        fs->malloced = false;
-    }
-
     /* Remap memory */
     if (HAVE_MREMAP && fs->data != NULL)
     {
@@ -121,7 +97,6 @@ bool FS_resize(FileStorage *fs, size_t size)
         return false;
     }
 
-alloc_ok:
     /* Update size/capacity */
     fs->size     = size;
     fs->capacity = new_size;
