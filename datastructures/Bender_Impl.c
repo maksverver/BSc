@@ -292,25 +292,9 @@ static TreeNode *create_subtree(
         /* Create a subtree by dividing the height into two halves, first
            creating the top subtree, and then creating the bottom subtrees,
            which are connected to the leaf nodes of the top subtree. */
-
-        /* NOTE: if this is slow, we can easily pre-compute the required
-                 splits since height will be small (less than 40 or so). */
-        int top_height, bottom_height;
         TreeNode *root, *leaf;
 
-        /* Bender specifies the size of the bottom tree should be a power
-           of two (without giving a rationale): */
-        /*
-        bottom_height = 1;
-        while (2*bottom_height < height)
-            bottom_height *= 2;
-        top_height = height - bottom_height;
-        */
-        /* Instead, we use height/2 which performs slightly better. */
-        top_height = height/2;
-        bottom_height = height - top_height;
-
-        root = create_subtree(bi, tree_pos, array_pos, top_height, level);
+        root = create_subtree(bi, tree_pos, array_pos, height/2, level);
 
         /* Find first leaf node in subtree */
         leaf = root;
@@ -320,10 +304,10 @@ static TreeNode *create_subtree(
         /* Create all subtrees */
         do {
             leaf->left = create_subtree( bi, tree_pos, array_pos,
-                                         bottom_height, level + top_height );
+                                         height - height/2, level + height/2 );
             leaf->left->parent = leaf;
             leaf->right = create_subtree( bi, tree_pos, array_pos,
-                                          bottom_height, level + top_height );
+                                          height - height/2, level + height/2 );
             leaf->right->parent = leaf;
         } while ((leaf = next_leaf(leaf)) != NULL);
 
