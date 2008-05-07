@@ -29,8 +29,9 @@ typedef enum SetType {
     "BerkeleyDB hash path=FP .."
     Creates a BerkeleyDB hash table based set.
 
-    "Bender"
+    "Bender density=0.x"
     Creates a cache-oblivious set (as proposed by Bender et al.)
+    The density parameter must be in range [0-1] (default: 0.5)
 
     "Mock path=FP [record|replay]"
     Creates a mock implementation recording/replaying to/from a file.
@@ -51,6 +52,7 @@ Set *Set_create_from_args(int argc, const char * const *argv)
     Set *result;
     Allocator *allocator;
     bool record, replay;
+    double density = -1;
 
     if (argc < 1)
         return NULL;
@@ -163,6 +165,13 @@ Set *Set_create_from_args(int argc, const char * const *argv)
                 return NULL;
             replay = true;
         }
+        if (density == -1 && sscanf(*argv, "density=%lf", &density) == 1)
+        {
+            if (type != Bender)
+                return NULL;
+            if (density < 0 || density > 1)
+                return NULL;
+        }
         else
         {
             /* no option matched! */
@@ -197,7 +206,10 @@ Set *Set_create_from_args(int argc, const char * const *argv)
         break;
 
     case Bender:
-        result = Bender_Set_create(allocator);
+        /* Set default density (if none specified) */
+        if (density == -1)
+            density = 0.5;
+        result = Bender_Set_create(allocator, density);
         break;
 
     case Mock:

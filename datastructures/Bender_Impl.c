@@ -59,20 +59,7 @@
 */
 
 
-/* Maximum density on level 0.
-
-   Since the capacity is doubled when this is exceeded, the minimum density at
-   any time is actually max_density/2.
-
-   It isn't clear what the optimal value should be; low values (around 0.2)
-   paradoxically seem to work pretty well (despite the fact that they require
-   a lot of storage space, worst case).
-
-   FIXME: Make this configurable per set instance?
-*/
-const double max_density = 0.25;
-
-/* Enable an optimization that makes updates somewhat (~50%) faster.
+/* Enable an optimization that makes updates somewhat (~33%) faster.
 
    Normally, updates are performed by finding the smallest non-overflowing
    window where a new element can be inserted before its successor, and then
@@ -92,8 +79,7 @@ const bool opt_fast_update = true;
 /* Copy value of ArrayNode *q to ArrayNode *p while keeping the pointer data
    unmodified. */
 #define ARRAY_COPY(p, q)                                                    \
-    do { assert(q->size != (size_t)-1);                                     \
-         if (p == q) break; /* Necessary because memset doesn't allow       \
+    do { if (p == q) break; /* Necessary because memset doesn't allow       \
                                overlapping memory regions. */               \
          memcpy( (char*)(p) + offsetof(ArrayNode, size),                    \
                  (char*)(q) + offsetof(ArrayNode, size),                    \
@@ -412,7 +398,6 @@ static void overwrite_blank( Bender_Impl *bi, size_t i,
     size_t win;
 
     /* Set value */
-    assert(ARRAY_AT(i)->size == (size_t)-1);
     ARRAY_AT(i)->size = size;
     memcpy(ARRAY_AT(i)->data, data, size);
 
@@ -533,7 +518,7 @@ static void resize(Bender_Impl *bi, int new_order)
     for (l = 0; l < bi->L; ++l)
     {
         bi->upper_bound[l] = (size_t)WINDOW_SIZE(l)*
-            (max_density + (1 - max_density)*l/(bi->L - 1));
+            (bi->density + (1 - bi->density)*l/(bi->L - 1));
     }
 
     /* Recompute population counts */
@@ -605,7 +590,6 @@ static void insert_and_redistribute (Bender_Impl *bi,
             if (ARRAY_AT(p)->size == (size_t)-1)
                 break;
         }
-        assert(p < end);    /* otherwise, the entire window is full */
 
         /* Now move consecutive elements one place to the right to create
            a gap to insert the new element in */
@@ -680,16 +664,17 @@ static void insert_and_redistribute (Bender_Impl *bi,
 }
 
 
-void Bender_Impl_create( Bender_Impl *bi,
-                         Allocator *allocator, size_t value_size )
+void Bender_Impl_create( Bender_Impl *bi, Allocator *allocator,
+                         size_t value_size, double density )
 {
     /* Check for valid size (positive integer multiple of sizeof(size_t)) */
     assert(value_size > 0 && value_size%sizeof(size_t) == 0);
 
     /* Initialize structure */
-    bi->V = value_size;
-    bi->O = 0;
-    bi->L = 0;
+    bi->V           = value_size;
+    bi->O           = 0;
+    bi->L           = 0;
+    bi->density     = density;
     bi->upper_bound = NULL;
     bi->population  = NULL;
     bi->data        = NULL;
@@ -708,7 +693,7 @@ bool Bender_Impl_insert( Bender_Impl *bi,
     size_t i, j, win, N;
     int lev, diff;
 
-    assert(key_size < bi->V);
+    assert(key_size <= bi->V);
 
     /* First, find successor node */
     i = find_successor(bi, key_data, key_size, &diff);
@@ -746,7 +731,6 @@ bool Bender_Impl_insert( Bender_Impl *bi,
         resize(bi, bi->O + 1);
         lev = 0;
     }
-    assert(win < NUM_WINDOWS(lev));
 
     insert_and_redistribute(bi, lev, win, i, N, key_data, key_size);
     /* debug_check_counts(bi); */

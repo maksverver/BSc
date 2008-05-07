@@ -44,6 +44,7 @@ struct Bender_Impl
     size_t      V;              /* Size of values */
     int         O;              /* Order (capacity == pow(2,order)) */
     int         L;              /* Number of levels */
+    double      density;        /* Upper bound on density on level 0 */
     size_t      *upper_bound;   /* Population upper bound per level */
     size_t      *population;    /* Population per window */
     TreeNode    *tree;          /* Pointer to index tree root */
@@ -57,8 +58,8 @@ struct Bender_Impl
 };
 
 /* Create a Bender set implementation. */
-void Bender_Impl_create( Bender_Impl *bi,
-                         Allocator *allocator, size_t value_size );
+void Bender_Impl_create( Bender_Impl *bi, Allocator *allocator,
+                         size_t value_size, double density );
 
 /* Destroy a Bender set implementation and free all associated resources. */
 void Bender_Impl_destroy(Bender_Impl *bi);

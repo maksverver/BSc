@@ -63,8 +63,12 @@ Set *Btree_Set_create(Allocator *alloc, int pagesize);
 Set *Hash_Set_create(Allocator *alloc, size_t capacity);
 
 /* Creates a cache-oblivious set data structure backed as proposed by
-   Bender at al. in "A locality-preserving cache-oblivious data structure". */
-Set *Bender_Set_create(Allocator *alloc);
+   Bender at al. in "A locality-preserving cache-oblivious data structure".
+
+   Density is the density of the top-level window before it is overflowing
+   (between 0 and 1). Low values make updates cheaper, but result in larger
+   files. */
+Set *Bender_Set_create(Allocator *alloc, double density);
 
 /* Creates a mock set data structure that records/replays answers to/from the
    given file path. This is useful for benchmarking purposes. */

@@ -77,7 +77,7 @@ static void set_destroy(Bender_Set *set)
 }
 
 /* Creates a set data structure. */
-Set *Bender_Set_create(Allocator *allocator)
+Set *Bender_Set_create(Allocator *allocator, double density)
 {
     Bender_Set *set;
     int index;
@@ -95,7 +95,7 @@ Set *Bender_Set_create(Allocator *allocator)
 
     /* Create statically sized sets */
     for (index = 0; index < 12; ++index)
-        Bender_Impl_create(&set->impl[index], allocator, 16 << index);
+        Bender_Impl_create(&set->impl[index], allocator, 16 << index, density);
 
     return &set->base;
 }
