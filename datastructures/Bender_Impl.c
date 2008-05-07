@@ -25,28 +25,37 @@
    Therefore, there are L=O-ceil(log2(O)) levels (numbered from 0 to L-1);
    level x consists of 2^x windows of size C/(2^x).
 
-   For each window (at each level) a population count is kept (the number of
-   non-blank values stored in the window).
+   For the windows on the lowest level (level L-1) a population count is kept
+   (the number of non-blank values stored in the window). These counts are
+   used to compute the population counts of higher-level windows on the fly.
 
    Each level has an associated lower and upper bound on the number of values
    stored in it. If a window stores more (/less) values than its upper
    (/lower) bound permits, it is said to be overflowing (/underflowing).
+   Note that this is not an error condition; it is just a state that will be
+   rectified when a higher-level window is rebalanced.
 
-   The index is a binary search tree; the leaf nodes store the same elements
-   as the array (i.e. the i-th leaf stores the i-th element in the array,
+   Since we will only insert new elements in the array, undeflow cannot occur
+   and we will ignore it entirely.
+
+   The upper bounds for different levels are chosen in such a way that windows
+   on the lowest level have a density of 1 (the upper bound is then equal to
+   the window size) while higher levels have a lower bound.
+
+   New values are inserted in the lowest level (with the highest number)
+   that is not overflowing and then the entire window is rebalanced (meaning
+   that blank and non-blank values are evenly redistributed) and the index is
+   updated accordingly.
+
+   For fast finding of elements (both when inserting and looking up element)
+   a binary search tree index is kept. Its leaf nodes store the same elements
+   as the array (i.e. the i-th leaf node stores the i-th element in the array,
    which may be blank if there is no value at index i in the sparse array)
    while each interior node stores the maximum non-blank value of its children
    (or a blank value if there are no non-blank children).
 
-   New values are inserted in the lowest level (with the highest number)
-   that is not overflowing and not underflowing, and then the entire window
-   is rebalanced (meaning that blank and non-blank values are evenly
-   redistributed) and the index is updated accordingly.
-
-   Since we will only insert new elements in the array, we will ignore
-   underflow entirely, only rebalancing when overflow occurs. When the single
-   window at level 0 overflows, the size of the array (and its index) is
-   doubled (and the window then rebalanced).
+   The tree index then is stored in van Emde Boas lay-out to make it
+   cache-friendly without requiring parametrization.
 */
 
 

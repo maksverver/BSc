@@ -6,7 +6,7 @@
 #include <unistd.h>
 
 typedef enum SetType {
-    Btree, Hash, BDB_Unspecified, BDB_Hash, BDB_Btree, Bender
+    Btree, Hash, BDB_Unspecified, BDB_Hash, BDB_Btree, Bender, Mock
 } SetType;
 
 
@@ -23,23 +23,25 @@ typedef enum SetType {
     "hash [capacity=C] .."
     Creates a hash table based with capacity C items (default: 1,000,000).
 
-    "BerkeleyDB path=FP btree .."
+    "BerkeleyDB btree path=FP .."
     Creates a BerkeleyDB B-tree based set.
 
-    "BerkeleyDB path=FP hash .."
+    "BerkeleyDB hash path=FP .."
     Creates a BerkeleyDB hash table based set.
 
     "Bender"
     Creates a cache-oblivious set (as proposed by Bender et al.)
 
-    Optional arguments:
+    "Mock path=FP [record|replay]"
+    Creates a mock implementation recording/replaying to/from a file.
+
+    Common arguments:
 
     [mmap]
-    Use the mmap (file backed) allocator (default)
+    Use the mmap allocator (default)
 
     [malloc]
     Use the malloc allocator
-
 */
 Set *Set_create_from_args(int argc, const char * const *argv)
 {
@@ -47,12 +49,16 @@ Set *Set_create_from_args(int argc, const char * const *argv)
     int pagesize, capacity;
     char *path;
     Set *result;
-    Allocator *allocator = NULL;
+    Allocator *allocator;
+    bool record, replay;
 
     if (argc < 1)
         return NULL;
 
     path = NULL;
+    allocator = NULL;
+    record = false;
+    replay = false;
 
     if (strcmp(*argv, "btree") == 0)
     {
@@ -74,6 +80,11 @@ Set *Set_create_from_args(int argc, const char * const *argv)
     if (strcmp(*argv, "Bender") == 0)
     {
         type = Bender;
+    }
+    else
+    if (strcmp(*argv, "mock") == 0)
+    {
+        type = Mock;
     }
     else
     {
@@ -116,6 +127,8 @@ Set *Set_create_from_args(int argc, const char * const *argv)
         {
             if (path == NULL)
                 return NULL;
+            if (!(type == BDB_Btree || type == BDB_Hash || type == Mock))
+                return NULL;
         }
         else
         if (strcmp(*argv, "malloc") == 0)
@@ -130,6 +143,20 @@ Set *Set_create_from_args(int argc, const char * const *argv)
             if (allocator != NULL)
                 return NULL;
             allocator = Allocator_mmap;
+        }
+        else
+        if (strcmp(*argv, "record") == 0)
+        {
+            if (record || replay)
+                return NULL;
+            record = true;
+        }
+        else
+        if (strcmp(*argv, "replay") == 0)
+        {
+            if (record || replay)
+                return NULL;
+            replay = true;
         }
         else
         {
@@ -166,6 +193,12 @@ Set *Set_create_from_args(int argc, const char * const *argv)
 
     case Bender:
         result = Bender_Set_create(allocator);
+        break;
+
+    case Mock:
+        if (!(record || replay) || path == NULL)
+            return NULL;
+        result = Mock_Set_create(path, record);
         break;
 
     default:

@@ -66,4 +66,8 @@ Set *Hash_Set_create(Allocator *alloc, size_t capacity);
    Bender at al. in "A locality-preserving cache-oblivious data structure". */
 Set *Bender_Set_create(Allocator *alloc);
 
+/* Creates a mock set data structure that records/replays answers to/from the
+   given file path. This is useful for benchmarking purposes. */
+Set *Mock_Set_create(const char *filepath, bool record);
+
 #endif /* ndef SET_H_INCLUDED */
