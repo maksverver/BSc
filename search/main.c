@@ -16,9 +16,9 @@ static void usage()
         "Usage:\n"
         "    search [<options>] (set description)\n"
         "Options:\n"
-        "    -b          -- use breadth-first search\n"
-        "    -d          -- use depth-first search (default)\n"
-        "    -f bytecode -- path to bytecode field\n");
+        "    -B          -- use breadth-first search (default)\n"
+        "    -D          -- use depth-first search\n"
+        "    -m model    -- path to model bytecode file\n");
     exit(1);
 }
 
@@ -29,22 +29,22 @@ static void parse_args(int argc, char *argv[])
 
     if (argc < 2) usage();
 
-    while ((ch = getopt(argc, argv, "bdf:")) >= 0)
+    while ((ch = getopt(argc, argv, "BDm:")) >= 0)
     {
         switch (ch)
         {
-        case 'b':
+        case 'B':
             bfs = true;
             break;
 
-        case 'd':
+        case 'D':
             dfs = true;
             break;
 
-        case 'f':
+        case 'm':
             if (opt_bytecode_path != NULL)
             {
-                printf("At most one bytecode file can be specified!\n\n");
+                printf("At most one model can be specified!\n\n");
                 usage();
             }
             opt_bytecode_path = optarg;
@@ -57,7 +57,7 @@ static void parse_args(int argc, char *argv[])
 
     if (bfs && dfs)
     {
-        printf("At most one of -b or -d may be given!\n\n");
+        printf("At most one of -B or -D may be given!\n\n");
         usage();
     }
     else
@@ -67,7 +67,7 @@ static void parse_args(int argc, char *argv[])
 
     if (opt_bytecode_path == NULL)
     {
-        printf("A bytecode file must be specified!\n\n");
+        printf("A model must be specified!\n\n");
         usage();
     }
 

@@ -22,14 +22,56 @@ typedef struct SearchContext
 void hex_print(FILE *fp, void *data, size_t size)
 {
     unsigned char *p = data;
-    printf("size=%d %d\n", (int)nipsvm_state_size(data), (int)size);
-    return;
+    size_t i;
+
+    for (i = 0; i < size; ++i)
+    {
+        fputc("0123456789abcdef"[*p++&15], fp);
+        fputc("0123456789abcdef"[*p++>>4], fp);
+        if (i%16 == 0)
+        {
+            fputc('\n', fp);
+        }
+        else
+        {
+            fputc(' ', fp);
+            if (i%8 == 0)
+                fputc(' ', fp);
+        }
+    }
+    fputc('\n', fp);
+}
+
+/* For debugging */
+void base64_print(FILE *fp, void *data, size_t size)
+{
+    unsigned char *p = data;
+    unsigned int v;
+    static const char *digits =
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+
     while (size > 0)
     {
-        fputc("0123456789ABCDEF"[*p&15], fp);
-        fputc("0123456789ABCDEF"[*p>>4], fp);
-        --size, ++p;
+        v = (size > 0 ? (p[0] << 16) : 0) |
+            (size > 1 ? (p[1] << 8)  : 0) |
+            (size > 2 ? (p[2] << 0)  : 0);
+        fputc(           digits[(v >> 18)&63]      , fp);
+        fputc(           digits[(v >> 12)&63]      , fp);
+        fputc(size > 1 ? digits[(v >>  6)&63] : '=', fp);
+        fputc(size > 2 ? digits[(v >>  0)&63] : '=', fp);
+        if (size < 3)
+        {
+            p += size;
+            size = 0;
+        }
+        else
+        {
+            p    += 3;
+            size -= 3;
+        }
     }
+
+    fputc('\n', fp);
 }
 
 /* Makes a copy of the given state with specified size in dynamic memory
@@ -153,6 +195,9 @@ static int breadth_first_search(SearchContext *sc)
     {
         if (!queue->get_front(queue, (void**)&state, &state_size))
             return -1;
+
+        base64_print(stdout, state, state_size);
+        fflush(stdout);
 
         if (!expand_state(sc, state))
             return -1;
