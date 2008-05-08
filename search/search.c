@@ -4,6 +4,8 @@
 #include <nips_vm/nipsvm.h>
 #include <sys/time.h>
 
+const int PAGESIZE = 4096;
+
 typedef struct SearchContext
 {
     nipsvm_t        *vm;
@@ -83,6 +85,11 @@ static void base64_print(FILE *fp, void *data, size_t size)
     fputc('\n', fp);
 }
 
+static double tv_to_sec(struct timeval *tv)
+{
+    return (double)tv->tv_sec + 1e-6*tv->tv_usec;
+}
+
 static double now()
 {
     struct timeval tv;
@@ -90,23 +97,43 @@ static double now()
 
     res = gettimeofday(&tv, NULL);
     assert(res == 0);
-    return (double)tv.tv_sec + 1e-6*tv.tv_usec;
+    return tv_to_sec(&tv);
 }
 
 void report_header(FILE *fp)
 {
     fprintf( fp,
-        " expanded   queued   transit. \n");
+        " expanded   queued   transit. wc.time  u.time  s.time  res.size   virt.size\n");
     fprintf( fp,
-        "--------- --------- --------- \n");
+        "--------- --------- --------- ------- -------  ------ ----------- -----------\n");
 }
 
 void report(FILE *fp, SearchContext *sc)
 {
-    fprintf( fp, "%9ld %9ld %9ld\n",
+    FILE *stat;
+    int res;
+    unsigned long utime, stime, vsize;
+    long rss;
+
+    stat = fopen("/proc/self/stat", "rt");
+    assert(stat != NULL);
+    res = fscanf( stat, "%*d %*s %*c %*d %*d %*d %*d %*d %*u "
+                        "%*lu %*lu %*lu %*lu "
+                        "%lu %lu %*ld %*ld %*ld %*ld %*ld %*ld %*llu "
+                        "%lu %ld",
+                  &utime, &stime, &vsize, &rss );
+    assert(res == 4);
+    fclose(stat);
+
+    fprintf( fp, "%9ld %9ld %9ld %7.3f %7.3f %7.3f %11ld %11lu\n",
              sc->expanded,
-            (long)sc->queue->size(sc->queue),
-            sc->transitions );
+             (long)sc->queue->size(sc->queue),
+             sc->transitions,
+             now() - sc->time_start,
+             (double)utime/100,
+             (double)stime/100,
+             PAGESIZE*rss,
+             vsize );
 
 }
 
