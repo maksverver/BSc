@@ -6,9 +6,11 @@
 #include "search.h"
 #include "nips_vm/bytecode.h"
 
-static const char *opt_bytecode_path;
-static bool opt_dfs;
-static Set *set = NULL;
+static const char   *opt_bytecode_path      = NULL;
+static long         opt_max_iterations      = 0;
+static long         opt_report_interval     = 0;
+static bool         opt_dfs                 = false;
+static Set          *set                    = NULL;
 
 static void usage()
 {
@@ -18,7 +20,10 @@ static void usage()
         "Options:\n"
         "    -B          -- use breadth-first search (default)\n"
         "    -D          -- use depth-first search\n"
-        "    -m model    -- path to model bytecode file\n");
+        "    -m model    -- path to model bytecode file\n"
+        "    -l cnt      -- iteration limit\n"
+        "    -i cnt      -- reporting interval\n"
+        );
     exit(1);
 }
 
@@ -29,7 +34,7 @@ static void parse_args(int argc, char *argv[])
 
     if (argc < 2) usage();
 
-    while ((ch = getopt(argc, argv, "BDm:")) >= 0)
+    while ((ch = getopt(argc, argv, "BDm:l:i:")) >= 0)
     {
         switch (ch)
         {
@@ -50,6 +55,24 @@ static void parse_args(int argc, char *argv[])
             opt_bytecode_path = optarg;
             break;
 
+        case 'l':
+            opt_max_iterations = atol(optarg);
+            if (opt_max_iterations <= 0)
+            {
+                printf("Iteration limit must be a positive integer!\n\n");
+                usage();
+            }
+            break;
+
+        case 'i':
+            opt_report_interval = atol(optarg);
+            if (opt_report_interval <= 0)
+            {
+                printf("Reporting interval must be a positive integer!\n\n");
+                usage();
+            }
+            break;
+
         case '?':
             usage();
         }
@@ -64,11 +87,6 @@ static void parse_args(int argc, char *argv[])
     if (bfs || dfs)
     {
         opt_dfs = dfs;
-    }
-    else
-    {
-        /* Default */
-        opt_dfs = false;
     }
 
     if (opt_bytecode_path == NULL)
@@ -95,26 +113,31 @@ static void parse_args(int argc, char *argv[])
 
 int main(int argc, char *argv[])
 {
-    Deque *deque = NULL;
-    st_bytecode *bytecode = NULL;
     int status = 0;
-    long expanded, transitions;
+    struct SearchParams params;
 
     parse_args(argc, argv);
 
+    params.visited         = set;
+    params.dfs             = opt_dfs;
+    params.max_iterations  = opt_max_iterations;
+    params.report_fp       = stdout;
+    params.report_interval = opt_report_interval;
+
     /* Load bytecode from file */
-    bytecode = bytecode_load_from_file(opt_bytecode_path, NULL);
-    if (bytecode == NULL)
+    params.model = bytecode_load_from_file(opt_bytecode_path, NULL);
+    if (params.model == NULL)
     {
-        fprintf(stderr, "Could not load bytecode from file \"%s\": ", argv[1]);
+        fprintf( stderr, "Could not load bytecode from file \"%s\": ",
+                         opt_bytecode_path );
         perror(NULL);
         status = 1;
         goto cleanup;
     }
 
     /* Create deque data structure */
-    deque = File_Deque_create("/dev/zero");
-    if (deque == NULL)
+    params.queue = File_Deque_create("/dev/zero");
+    if (params.queue == NULL)
     {
         perror("Could not create deque");
         status = 1;
@@ -122,22 +145,20 @@ int main(int argc, char *argv[])
     }
 
     /* Do search */
-    if (search(bytecode, deque, set, opt_dfs, &expanded, &transitions) < 0)
+    if (search(&params) < 0)
     {
         fprintf(stderr, "State space search failed!\n");
         status = 1;
     }
-    fprintf(stdout, "States:      %10ld\n", expanded);
-    fprintf(stdout, "Transitions: %10ld\n", transitions);
 
     /* Clean-up */
 cleanup:
-    if (set != NULL)
-        set->destroy(set);
-    if (deque != NULL)
-        deque->destroy(deque);
-    if (bytecode != NULL)
-        bytecode_unload(bytecode);
+    if (params.visited != NULL)
+        params.visited->destroy(params.visited);
+    if (params.queue != NULL)
+        params.queue->destroy(params.queue);
+    if (params.model != NULL)
+        bytecode_unload(params.model);
 
     return status;
 }

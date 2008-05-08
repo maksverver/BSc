@@ -10,6 +10,10 @@ typedef struct SearchContext
     Set             *visited;
     long            expanded;
     long            transitions;
+    long            iterations_left;
+    long            report_iterations_left;
+    long            report_interval;
+    FILE            *report_fp;
 
     /* To capture VM errors: */
     int             err_code;
@@ -73,6 +77,24 @@ void base64_print(FILE *fp, void *data, size_t size)
 
     fputc('\n', fp);
 }
+
+void report_header(FILE *fp)
+{
+    fprintf( fp,
+        " expanded   queued   transit. \n");
+    fprintf( fp,
+        "--------- --------- --------- \n");
+}
+
+void report(FILE *fp, SearchContext *sc)
+{
+    fprintf( fp, "%9ld %9ld %9ld\n",
+             sc->expanded,
+            (long)sc->queue->size(sc->queue),
+            sc->transitions );
+
+}
+
 
 /* Makes a copy of the given state with specified size in dynamic memory
    which must be freed by the caller using free(). */
@@ -139,6 +161,21 @@ static bool expand_state(SearchContext *sc, nipsvm_state_t *state)
     if (sc->err_code != -1)
         return false;
 
+    if (sc->iterations_left > 0)
+    {
+        if (--sc->iterations_left == 0)
+            return true;
+    }
+
+    if (sc->report_iterations_left > 0)
+    {
+        if (--sc->report_iterations_left == 0)
+        {
+            report(sc->report_fp, sc);
+            sc->report_iterations_left = sc->report_interval;
+        }
+    }
+
     return true;
 }
 
@@ -151,7 +188,7 @@ static int depth_first_search(SearchContext *sc)
     nipsvm_state_t *state;
     size_t state_size;
 
-    while (!queue->empty(queue))
+    while (!queue->empty(queue) && sc->iterations_left != 0)
     {
         /* Remove state from the queue */
         if (!queue->get_back(queue, (void**)&state, &state_size))
@@ -192,7 +229,7 @@ static int breadth_first_search(SearchContext *sc)
     nipsvm_state_t *state;
     size_t state_size;
 
-    while (!queue->empty(queue))
+    while (!queue->empty(queue) && sc->iterations_left != 0)
     {
         if (!queue->get_front(queue, (void**)&state, &state_size))
             return -1;
@@ -207,9 +244,7 @@ static int breadth_first_search(SearchContext *sc)
     return 0;
 }
 
-int search( st_bytecode *bytecode,
-             Deque *queue, Set *visited, bool dfs,
-             long *expanded, long *transitions )
+int search(const struct SearchParams *params)
 {
     SearchContext sc;
     nipsvm_t vm;
@@ -218,13 +253,12 @@ int search( st_bytecode *bytecode,
     int status;
 
     /* Initialize output variables */
-    *expanded    = 0;
-    *transitions = 0;
     status       = 0;
 
     /* Initialize VM */
     nipsvm_module_init();
-    if (nipsvm_init(&vm, bytecode, scheduler_callback, error_callback) != 0)
+    if (nipsvm_init( &vm, params->model,
+                     scheduler_callback, error_callback ) != 0)
     {
         perror("Could not initialize NIPS VM");
         return -1;
@@ -247,17 +281,27 @@ int search( st_bytecode *bytecode,
         goto cleanup;
     }
 
+    if (params->report_fp != NULL)
+    {
+        report_header(params->report_fp);
+    }
+
     /* Initialize search context */
-    sc.vm          = &vm;
-    sc.queue       = queue;
-    sc.visited     = visited;
-    sc.transitions =  0;
-    sc.expanded    =  0;
-    sc.err_code    = -1;
+    sc.vm                       = &vm;
+    sc.queue                    = params->queue;
+    sc.visited                  = params->visited;
+    sc.expanded                 = 0;
+    sc.transitions              = 0;
+    sc.iterations_left          = params->max_iterations > 0 ?
+                                  params->max_iterations : -1;
+    sc.report_iterations_left   = params->report_interval;
+    sc.report_interval          = params->report_interval;
+    sc.report_fp                = params->report_fp;
+    sc.err_code                 = -1;
 
     /* Add initial state to the queue */
-    visited->insert(visited, state, state_size);
-    if (!queue->push_back(queue, state, state_size))
+    sc.visited->insert(sc.visited, state, state_size);
+    if (!sc.queue->push_back(sc.queue, state, state_size))
     {
         perror("Could not add initial state to queue");
         status = -1;
@@ -265,8 +309,7 @@ int search( st_bytecode *bytecode,
     }
 
     /* Do bfs/dfs search */
-    printf("%d\n", dfs);
-    if (dfs)
+    if (params->dfs)
         status = depth_first_search(&sc);
     else
         status = breadth_first_search(&sc);
@@ -280,12 +323,13 @@ int search( st_bytecode *bytecode,
         fprintf(stderr, "VM encountered an error: %s\n", err_msg);
         return -1;
     }
+    else
+    {
+        if (params->report_fp != NULL)
+            report(params->report_fp, &sc);
+    }
 
 cleanup:
-    if (expanded != NULL)
-        *expanded = sc.expanded;
-    if (transitions != NULL)
-        *transitions = sc.transitions;
     nipsvm_finalize(&vm);
 
     return status;
