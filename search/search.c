@@ -241,27 +241,25 @@ static int breadth_first_search(SearchContext *sc)
 {
     Deque *queue = sc->queue;
     nipsvm_state_t *state;
-    size_t state_size, max_state_size = 0;
-    nipsvm_state_t *state_copy = NULL;
-    int status = 0;
+    size_t state_size;
+    int status;
 
+    status = 0;
+    state_size = 1;
     while (!queue->empty(queue) && sc->iterations_left != 0)
     {
+        /* HACK: reserve some space in advance, otherwise the pointer to the
+                 current state may be invalidated when new states are added to
+                 the queue when expand_state() is called. */
+        queue->reserve(queue, 100, state_size);
+
         if (!queue->get_front(queue, (void**)&state, &state_size))
         {
             status = -1;
             break;
         }
 
-        if (state_size > max_state_size)
-        {
-            max_state_size = state_size;
-            state_copy = realloc(state_copy, max_state_size);
-            assert(state_copy != NULL);
-        }
-        memcpy(state_copy, state, state_size);
-
-        if (!expand_state(sc, state_copy))
+        if (!expand_state(sc, state))
         {
             status = -1;
             break;
@@ -273,8 +271,6 @@ static int breadth_first_search(SearchContext *sc)
             break;
         }
     }
-
-    free(state_copy);
 
     return status;
 }

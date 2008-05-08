@@ -1,4 +1,4 @@
-CFLAGS=-I.. -Wall -Wextra -g -O0
+CFLAGS=-I.. -Wall -Wextra -g -O2
 LDLIBS=../nips_vm/libnips_vm.a ../datastructures/datastructures.a -ldb
 OBJECTS=main.o search.o
 

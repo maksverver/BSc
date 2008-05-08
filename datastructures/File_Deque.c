@@ -142,6 +142,18 @@ static bool pop_front(FileDeque *deque)
     return true;
 }
 
+static bool reserve(FileDeque *deque, size_t count, size_t size)
+{
+    void *new_data;
+
+    new_data = FS_reserve( &deque->fs, deque->data,
+                           deque->end + count*(2*sizeof(size_t) + size) );
+    if (new_data == NULL)
+        return false;
+    deque->data = new_data;
+    return true;
+}
+
 Deque *File_Deque_create(const char *filepath)
 {
     FileDeque *deque;
@@ -159,6 +171,7 @@ Deque *File_Deque_create(const char *filepath)
     deque->base.get_front  = (void*)get_front;
     deque->base.pop_back   = (void*)pop_back;
     deque->base.pop_front  = (void*)pop_front;
+    deque->base.reserve    = (void*)reserve;
 
     deque->count = 0;
     deque->begin = 0;

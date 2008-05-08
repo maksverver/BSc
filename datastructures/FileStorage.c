@@ -39,15 +39,20 @@ void FS_destroy(FileStorage *fs, void *data)
 
 void *FS_resize(FileStorage *fs, void *data, size_t size)
 {
+    data = FS_reserve(fs, data, size);
+    if (data != NULL)
+        fs->size = size;
+    return data;
+}
+
+void *FS_reserve(FileStorage *fs, void *data, size_t size)
+{
     int res;
     size_t old_size, new_size;
 
-    /* First, check to see if we have free space left */
+    /* First, check to see if any reallocation is required */
     if (size <= fs->capacity)
-    {
-        fs->size = size;
         return data;
-    }
 
     /* Round desired size up to the next page boundary. */
     old_size = fs->capacity;
@@ -88,8 +93,7 @@ void *FS_resize(FileStorage *fs, void *data, size_t size)
     if (data == NULL || data == MAP_FAILED)
         return NULL;
 
-    /* Update size/capacity */
-    fs->size     = size;
+    /* Update capacity */
     fs->capacity = new_size;
 
     return data;

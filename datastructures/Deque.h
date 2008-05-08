@@ -51,6 +51,10 @@ Deque *Memory_Deque_create();
         Removes an element at the front of the queue or returns false if the
         deque is empty or the element could not be removed.
 
+    bool reserve(size_t count, size_t size)
+        Tries to reserve space for ``count'' more elements of size ``size''
+        or returns false if the reservation could not be made. This prevents
+        reallocations when growing.
 */
 struct Deque
 {
@@ -63,6 +67,7 @@ struct Deque
     bool (*get_front)(struct Deque *, void **, size_t *);
     bool (*pop_back)(struct Deque *);
     bool (*pop_front)(struct Deque *);
+    bool (*reserve)(struct Deque *, size_t count, size_t size);
 };
 
 #endif /* ndef DEQUE_H_INCLUDED */

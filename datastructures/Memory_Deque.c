@@ -154,6 +154,11 @@ static void destroy(MemDeque *deque)
     free(deque);
 }
 
+static bool reserve(MemDeque *deque, size_t count, size_t size)
+{
+    return false;
+}
+
 Deque *Memory_Deque_create()
 {
     MemDeque *deque;
@@ -171,6 +176,7 @@ Deque *Memory_Deque_create()
     deque->base.get_front  = (void*)get_front;
     deque->base.pop_back   = (void*)pop_back;
     deque->base.pop_front  = (void*)pop_front;
+    deque->base.reserve    = (void*)reserve;
 
     deque->count = 0;
     deque->last  = NULL;

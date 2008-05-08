@@ -24,10 +24,15 @@ void FS_destroy(FileStorage *fs, void *data);
 
 /* Resizes the used memory size.
    This may cause the underlying file to be extended, in which case ``data''
-   may have tobe moved!
+   may have to be moved!
 
-   Returns true if the request was completed succesfully, or returns false and
-   sets errno. */
+   Returns a new data pointer or returns NULL and sets errno. */
 void *FS_resize(FileStorage *fs, void *data, size_t new_size);
+
+/* Similar to FS_resize, but only changes the available capacity
+   (not the actual size).
+
+   Returns a new data pointer or returns NULL and sets errno. */
+void *FS_reserve(FileStorage *fs, void *data, size_t new_size);
 
 #endif /* ndef FILE_STORAGE_H_INCLUDED */
