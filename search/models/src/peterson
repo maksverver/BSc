@@ -1,0 +1,28 @@
+/* Peterson's solution to the mutual exclusion problem - 1981 */
+
+bool turn, flag[2];
+byte ncrit;
+
+proctype user(byte id)
+{
+        assert(id == 0 || id == 1);
+again:
+        flag[id] = 1;
+        turn = id;
+        (flag[1 - id] == 0 || turn == 1 - id);
+
+        ncrit++;
+        assert(ncrit == 1);     /* critical section */
+        ncrit--;
+
+        flag[id] = 0;
+        goto again
+}
+
+init
+{
+        atomic {
+                run user(0);
+                run user(1);
+        }
+}
