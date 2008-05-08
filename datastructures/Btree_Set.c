@@ -218,8 +218,6 @@ static PageEntry *insert_entry( Btree_Set *set,
         COUNT(new_page) = N - (k + 1);
         memcpy(DATA(new_page), DATA(page) + BEGIN(page, k + 1),
                END(page, N - 1) - BEGIN(page, k + 1));
-        memcpy(DATA(new_page) + set->pagesize - ISIZE(N - (k + 1)),
-               DATA(page) - ISIZE(N), 2*sizeof(int)*(N - (k + 1)));
         BEGIN(new_page, 0) = 0;
         for (n = k + 1; n < N; ++n)
             END(new_page, n - (k + 1)) = END(page, n) - BEGIN(page, k + 1);

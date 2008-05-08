@@ -158,6 +158,7 @@ static int depth_first_search(SearchContext *sc)
         {
             return -1;
         }
+
         state = duplicate_state(state, state_size);
         if (state == NULL)
         {
@@ -195,9 +196,6 @@ static int breadth_first_search(SearchContext *sc)
     {
         if (!queue->get_front(queue, (void**)&state, &state_size))
             return -1;
-
-        base64_print(stdout, state, state_size);
-        fflush(stdout);
 
         if (!expand_state(sc, state))
             return -1;
@@ -267,6 +265,7 @@ int search( st_bytecode *bytecode,
     }
 
     /* Do bfs/dfs search */
+    printf("%d\n", dfs);
     if (dfs)
         status = depth_first_search(&sc);
     else

@@ -7,7 +7,7 @@
 #include "nips_vm/bytecode.h"
 
 static const char *opt_bytecode_path;
-static bool opt_bfs = false;
+static bool opt_dfs;
 static Set *set = NULL;
 
 static void usage()
@@ -61,8 +61,14 @@ static void parse_args(int argc, char *argv[])
         usage();
     }
     else
+    if (bfs || dfs)
     {
-        opt_bfs = bfs;
+        opt_dfs = dfs;
+    }
+    else
+    {
+        /* Default */
+        opt_dfs = false;
     }
 
     if (opt_bytecode_path == NULL)
@@ -116,7 +122,7 @@ int main(int argc, char *argv[])
     }
 
     /* Do search */
-    if (search(bytecode, deque, set, opt_bfs, &expanded, &transitions) < 0)
+    if (search(bytecode, deque, set, opt_dfs, &expanded, &transitions) < 0)
     {
         fprintf(stderr, "State space search failed!\n");
         status = 1;
