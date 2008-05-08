@@ -1,3 +1,4 @@
+% TODO: ensure all references in paper.bib are cited in the paper!
 \documentclass{acm_proc_article-sp}
 
 \usepackage{pslatex}
@@ -13,6 +14,7 @@
 \begin{document}
 
 \title{Evaluation of Cache-Oblivious Data Structures}
+\subtitle{\textit{Work In Progress!}}
 
 \numberofauthors{1}
 \author{Maks Verver\\ \email{m.verver@student.utwente.nl}}
@@ -35,9 +37,19 @@ Mathematics and Computer Science}
 \maketitle
 
 \begin{abstract}
-%TODO
+% TODO: rewrite (NB: max. 10 lines)
+%In modern computer hardware architecture, memory is organized in a hierarchy
+consisting of several types of memory with different memory sizes, block
+transfer sizes and access times. The cache-oblivious model has been proposed
+to reflect this reality more accurately than traditional models. A number of
+algorithms and data structures have been proposed that perform optimally in
+this model. The goal of the proposed research project is to implement a
+selection of cache-oblivious set-like data structures, evaluate their
+performance (in terms of execution time and memory use) in a realistic
+environment, and compare their performance to traditional data structures.
 \end{abstract}
 
+% TODO: update keywords?
 \keywords{cache efficiency, locality of reference, algorithms}
 
 % TODO: more meaningful section titles?
@@ -47,12 +59,20 @@ Mathematics and Computer Science}
 % -> Motivate research into cache-efficient algorithms
 % -> Move "classification" subsection describing three models to front
 % -> Describe each of the three models
-% -> Finally, present goal of the research (incorporate "Research Questions" in proposal)
+% -> Introduce three data structures:
+%     - note that hash tables have poor locality of reference
+%     - note that btrees have good locality of reference but require pagesize
+% -> Finally, present goal of the research (incorporate "Research Questions" in
+proposal)
 
 % Marielle suggested:
 %  - give the "standard" memory model an explicit name
 %  - move example of cache oblivious data structures to front
 %  - mention examples of cache unaware and cache aware algorithms
+
+% Note explicitly that cache-oblivious algorithms are relatively complex, so
+% that the main question is wether the improvedlocality of reference 
+% compensates for the overhead incurred.
 
 Text here will be mostly copied from the proposal.
 
@@ -61,29 +81,172 @@ Text here will be mostly copied from the proposal.
 
 Text here will be mostly copied from the proposal.
 
-\section{Use Case}
+\section{Test Case}
+As a test case, the scenario of a state space search has been chosen. This is a
+suitable scenario for two reasons. First, it is commonly used as a practical
+component of formal methods for software verification, and therefore good
+algorithms are of great practical significance. Second, as we will explain
+below, the performance of state space search algorithms depends for a large
+part on the performance of the data structures that are used to implement
+them; therefore, research into efficient data structures is of particular
+interest to this application.
+
+State space search is used to verify the correctness of software programs. For
+this purpose, programs are first modeled using a formal language, that is also
+used to specify properties of the program that should hold during its
+execution. A program can be in a (possibly infinite) amount of states, one of
+which is usually designated the \emph{initial state}. If a transition from one
+state to another is possible (according to the rules of the formal language
+used) the latter state is said to be a \emph{successor state} of the former.
+Generating the successors of a particular state is also called
+\emph{expanding} the state. Of course, the model must be non-deterministic to
+allow more than one successor to exist for a single state.
+
+The set of all states reachable by transitions from the initial state is called
+the \emph{state space} of a model, and it is the goal of a state space search
+algorithm to generate all of these states, in order to check that desired
+properties hold in all of them. For this approach it is often required that
+the state space be finite (for obvious reasons).
+
+The outline of a state space search algorithm is given in Program
+\ref{prog-search}. Note that in addition to the initial state and a function
+to generate successors, a queue and a set data structure are used. The queue
+holds states that have been generated but not yet expanded and is used to
+determine what state to expand next. The set holds all states that have been
+generated so far and is used to prevent a single state from being expanded
+more than once.
+
+% TODO: note that the algorithm uses the queue, successors and set, and that
+the set is the bottleneck.
+
+\begin{program}
+\begin{verbatim}
+Queue queue = new Queue;
+Set generated = new Set;
+queue.insert(initial_state);
+while (!queue.empty()) {
+    State state = queue.extract();
+    for (State s : successors(state)) {
+        if (generated.contains(s) == false) {
+            generated.insert(s);
+            queue.insert(s);
+        }
+    }
+}
+\end{verbatim}
+\caption{Pseudo-code for a simple state search algorithm.}
+\label{prog-search}
+\end{program}
+
 % TODO: different name?
-% Describe use case: state search, set data structure.
+
+% Describe case: state search, set data structure.
 % Describe (globally) what to measure: execution time
 
-\section{Research Approach}
-% Describe research approach in detail:
+\section{Methodology}
+
 % - NIPS VM
 % - SPIN model checker
 % - Promela-to-NIPS compiler
-% - Reimplementation of data structures in C
 
-% - Subsection: B-tree implementation
-% - Subsection: Hash-table implementation
-% - Subsection: Bender's B-tree implementation
+For our experimental framework, we need a collection of formal models that are
+representative of those typically used for formal verification, and a way to
+execute them. For the first part, we have looked at Spin \cite{spin}, a widely
+used model checking tool. Spin uses a custom modeling language, called
+PROMELA, to specify models and comes with a collection of example models that
+are suitable for our experiment.
+
+For the execution of these models we will use NIPS VM \cite{weber2007evm}, a
+high-performance virtual machine for state space generation that is easily
+embeddable in our framework. Although the NIPS VM only executes bytecode in a
+custom format, a PROMELA compiler is also available to generate the required
+bytecode from the Spin models.\cite{nips} The NIPS VM is prefered to over the
+Spin tools because it was designed to be embedded in other programs and as
+such is more easily integrated in our framework.
+
+\section{Data Structures}
+% TODO: copy motivation for reimplementation from proposal
+% TODO: specify required operations (insert&contains)
+% TODO: note that all data structures require contiguous memory
+%       (except the Bender set)
+% TODO: note use of mmap for automatic storage management
+
+\subsection{Hash Table Implementation}
+Hash tables are widely used as a fast (O($1$)) data structure especially when
+used for in-memory storage. In its simplest form, a hash table consists of an
+index array (the \emph{index}) with a fixed number of slots. A \emph{hash
+function} is used to map key values onto slot numbers. If the slot for a value
+is empty, it may be inserted there. Queries for the existance of an element in
+the hash table similarly see if the queried value is stored at its designated
+slot.
+
+Note that if we insert several different values, some values may map to the
+same slot, which is problematic if each slot can only store one value. There
+are a lot of different ways to resolve this collision problem; we use
+\emph{separate chaining} which means that slots do not store values directly,
+but instead each slot stores a pointer to a singly-linked list of values that
+map to that slot. This particular implementation technique is well-suited to
+the scenario where values may have different sizes (as the slots only need to
+store a fixed-size pointer and not a variable-size value) and maintains
+relatively good performance when the number of values stored exceeds the size
+of the index array \cite{sedgewick1998ac}.
+
+% TODO: picture?
+
+Our hash table implementation uses a fixed size index which must be specified
+when creating the hash table, as this simplifies the implementation
+considerably. The index is stored at the front of the file, after which values
+are simply appended in the order in which they are added. Note that we do not
+support removing elements from the hash table, which means we do not have to
+deal with holes that would otherwise occur in the stored file. For our
+experiments the FNV-1a hash function \cite{noll2004fnv} is used (modulo the
+size of the index) to map values to slots.
+
+\subsection{B-tree Implementation}
+The B-tree data structure was first proposed by Bayer and McCreight
+\cite{bayer1970oam} and is widely implemented and often described in
+textbooks. Our implementation is based on the description by Kifer, Bernstein
+and Lewis \cite{kifer2006dsa}.
+
+B-trees are similar to other search tree data structures. A defining property
+is that they organize data in pages of a fixed size, each containing several
+values, which makes them especially useful for purposes of on-disk storage
+where reading and writing data in a few large blocks is relatively cheap
+compared to accessing several smaller blocks.
+
+% TODO: picture and description
+
+Our does not support storing values larger than the size of a page (which
+requires special handling, usually by assigning special overflow pages to hold
+the portion of the value that does not fit in the page). Deletion of items is
+not supported either.
+
+\section{Cache-Oblivious Dictionary Implementation}
+% TODO: reference (if not included earlier)
+
+% sparse array
+% configurable density parameter
+% binary search tree index
+% van Emde Boas lay-out
+% special optimization on insertion (note that it's not described by Bender)
+
+\subsection{Experimental Environment}
 
 \section{Metrics}
-% Describe how performance was measaured
+% Describe how performance was measured
 % Describe data set used
 
 \section{Results}
 % Present results!
 % Tables, graphs, etc.
+% What to include:
+%   per program:     transitions/states graph
+%   per program/set: 
+%
+%   
+
+\section{Discussions}
+% Explain results, draw conclusions.
 
 \section{Conclusion}
 % Repeat findings.
