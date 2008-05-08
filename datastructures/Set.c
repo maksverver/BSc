@@ -130,7 +130,7 @@ Set *Set_create_from_args(int argc, const char * const *argv)
                 return NULL;
         }
         else
-        if (path == NULL && sscanf(*argv, "file=%as", &path) == 1)
+        if (path == NULL && sscanf(*argv, "path=%as", &path) == 1)
         {
             if (path == NULL)
                 return NULL;
@@ -165,6 +165,7 @@ Set *Set_create_from_args(int argc, const char * const *argv)
                 return NULL;
             replay = true;
         }
+        else
         if (density == -1 && sscanf(*argv, "density=%lf", &density) == 1)
         {
             if (type != Bender)

@@ -1,4 +1,4 @@
-CFLAGS=-I/usr/include/db1 -Wall -Wextra -g -O2
+CFLAGS=-I/usr/include/db1 -Wall -Wextra -g -O0
 LDLIBS=-ldb-4.5
 OBJECTS=Alloc.o BDB_Set.o Bender_Set.o Bender_Impl.o Btree_Set.o Dummy_Set.o \
         File_Deque.o FileStorage.o Hash_Set.o Memory_Deque.o Mock_Set.o Set.o \

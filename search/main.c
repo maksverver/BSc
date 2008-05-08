@@ -106,7 +106,7 @@ static void parse_args(int argc, char *argv[])
     set = Set_create_from_args(argc, (const char**)argv);
     if (set == NULL)
     {
-        perror("Could not create set (invalid description?)\n\n");
+        printf("Could not create set (invalid description?)\n\n");
         exit(1);
     }
 }

@@ -2,6 +2,7 @@
 #include <assert.h>
 #include <stdio.h>
 #include <nips_vm/nipsvm.h>
+#include <sys/time.h>
 
 typedef struct SearchContext
 {
@@ -20,10 +21,14 @@ typedef struct SearchContext
     nipsvm_pid_t    err_pid;
     nipsvm_pc_t     err_pc;
 
+    /* For reporting stats: */
+    double          time_start;
+
 } SearchContext;
 
+
 /* For debugging */
-void hex_print(FILE *fp, void *data, size_t size)
+static void hex_print(FILE *fp, void *data, size_t size)
 {
     unsigned char *p = data;
     size_t i;
@@ -47,7 +52,7 @@ void hex_print(FILE *fp, void *data, size_t size)
 }
 
 /* For debugging */
-void base64_print(FILE *fp, void *data, size_t size)
+static void base64_print(FILE *fp, void *data, size_t size)
 {
     unsigned char *p = data;
     unsigned int v;
@@ -78,6 +83,16 @@ void base64_print(FILE *fp, void *data, size_t size)
     fputc('\n', fp);
 }
 
+static double now()
+{
+    struct timeval tv;
+    int res;
+
+    res = gettimeofday(&tv, NULL);
+    assert(res == 0);
+    return (double)tv.tv_sec + 1e-6*tv.tv_usec;
+}
+
 void report_header(FILE *fp)
 {
     fprintf( fp,
@@ -94,7 +109,6 @@ void report(FILE *fp, SearchContext *sc)
             sc->transitions );
 
 }
-
 
 /* Makes a copy of the given state with specified size in dynamic memory
    which must be freed by the caller using free(). */
@@ -227,21 +241,42 @@ static int breadth_first_search(SearchContext *sc)
 {
     Deque *queue = sc->queue;
     nipsvm_state_t *state;
-    size_t state_size;
+    size_t state_size, max_state_size = 0;
+    nipsvm_state_t *state_copy = NULL;
+    int status = 0;
 
     while (!queue->empty(queue) && sc->iterations_left != 0)
     {
         if (!queue->get_front(queue, (void**)&state, &state_size))
-            return -1;
+        {
+            status = -1;
+            break;
+        }
 
-        if (!expand_state(sc, state))
-            return -1;
+        if (state_size > max_state_size)
+        {
+            max_state_size = state_size;
+            state_copy = realloc(state_copy, max_state_size);
+            assert(state_copy != NULL);
+        }
+        memcpy(state_copy, state, state_size);
+
+        if (!expand_state(sc, state_copy))
+        {
+            status = -1;
+            break;
+        }
 
         if (!queue->pop_front(queue))
-            return -1;
+        {
+            status = -1;
+            break;
+        }
     }
 
-    return 0;
+    free(state_copy);
+
+    return status;
 }
 
 int search(const struct SearchParams *params)
@@ -298,6 +333,7 @@ int search(const struct SearchParams *params)
     sc.report_interval          = params->report_interval;
     sc.report_fp                = params->report_fp;
     sc.err_code                 = -1;
+    sc.time_start               = now();
 
     /* Add initial state to the queue */
     sc.visited->insert(sc.visited, state, state_size);
