@@ -4,7 +4,7 @@ OBJECTS=main.o search.o
 
 all: search
 
-search: $(OBJECTS) 
+search: $(OBJECTS) ../nips_vm/libnips_vm.a ../datastructures/datastructures.a
 	$(CC) -o search $(OBJECTS) $(LDFLAGS) $(LDLIBS)
 
 clean:
@@ -14,5 +14,4 @@ distclean: clean
 	rm -f search
 
 .PHONY: all clean distclean
-
 

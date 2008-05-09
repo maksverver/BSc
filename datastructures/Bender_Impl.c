@@ -541,11 +541,13 @@ static void resize(Bender_Impl *bi, int new_order)
 static void insert_and_redistribute (Bender_Impl *bi,
     int lev, size_t win, size_t idx, size_t N, const void *data, size_t size )
 {
-    size_t begin, end, n, p, q, W, gap_space, gap_extra;
+    size_t begin, end, n, p, q, W;
 
     W = WINDOW_SIZE(lev);
     begin = win*W;
     end   = begin + W;
+    /* printf("Redistributing window %d on level %d/%d (%d/%d elements); inserting at %d\n",
+              (int)win, (int)lev, bi->L, (int)N + 1, (int)W, (int)idx); */
 
     /* We start by packing all the elements to the front of the array.
        If there is a gap at or before ``idx'' this is easy, otherwise
@@ -622,40 +624,27 @@ static void insert_and_redistribute (Bender_Impl *bi,
        "Evenly" means that if the window has size "W" and contains "N"
        elements, then there are (W-N) spaces to be divided over N+1 gaps,
        which means that each gap is at least (W-N)/(N+1) (rounded down)
-       in size, while the last (W-N)%(N+1) gaps have an extra space.
-
-       (This definition if evenly is not specifically required, as long
-        as elements are divided roughly evenly among windows of the lower
-        levels.)
+       in size; there are (W-N)%(N+1) gaps with an extra space, which must
+       be divided uniformly over all windows.
     */
     N += 1;
-    gap_space = (W - N)/(N + 1);
-    gap_extra = (W - N)%(N + 1);
 
     p = end;
-    while (q > begin)
-    {
-        /* Insert gap */
-        for (n = 0; n < gap_space; ++n)
-        {
-            p -= 1;
-            ARRAY_AT(p)->size = (size_t)-1;
-        }
-        if (gap_extra > 0)
-        {
-            p -= 1;
-            ARRAY_AT(p)->size = (size_t)-1;
-            gap_extra -= 1;
-        }
-
-        /* Copy element */
-        p -= 1, q -= 1;
-        ARRAY_COPY(ARRAY_AT(p), ARRAY_AT(q));
-    }
     while (p > begin)
     {
-        p -= 1;
-        ARRAY_AT(p)->size = (size_t)-1;
+        /* FIXME: potential overflow here (though unlikely when using 64-bit
+                  aritmetic); try to implement in a safer way (and if possible,
+                  more efficiently as well). */
+        if ((q - begin)*W >= (p - begin)*N)
+        {
+            p -= 1, q -= 1;
+            ARRAY_COPY(ARRAY_AT(p), ARRAY_AT(q));
+        }
+        else
+        {
+            p -= 1;
+            ARRAY_AT(p)->size = (size_t)-1;
+        }
     }
 
     /* Update population counts. */
@@ -728,6 +717,7 @@ bool Bender_Impl_insert( Bender_Impl *bi,
     if (lev < 0)
     {
         /* Array is full -- resize to next order of size. */
+        /* printf("resizing to %d\n", bi->O + 1); */
         resize(bi, bi->O + 1);
         lev = 0;
     }
