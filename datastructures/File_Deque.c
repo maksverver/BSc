@@ -21,9 +21,10 @@
     Some notes:
     - pushing data in front of the deque is not supported in this
       implementation!)
-    - in order to save space, the allocated data can be moved to the front of
-      the file periodically (e.g. whenever end - begin > begin) to save disk
-      space while maintaining amortized (but not worst-case) complexity bounds.
+    - in order to save space, the allocated data is moved to the front of the
+      file periodically (e.g. whenever end - begin > begin) to save disk
+      space while maintaining amortized (but not per-operation) complexity
+      bounds.
     - 16 bytes per entry is a lot of overhead; using 32-bit sizes would
       reduce that to 8 bytes per entry and is probably sufficient as well (but
       in that case data should probably still be stored on 8-byte boundaries)
@@ -138,6 +139,15 @@ static bool pop_front(FileDeque *deque)
     size = *(size_t*)(deque->data + deque->begin);
     deque->begin += 2*sizeof(size_t) + align(size);
     --deque->count;
+
+    if (deque->begin > deque->end - deque->begin)
+    {
+        /* Compact space */
+        memmove( deque->data,
+                 deque->data + deque->begin, deque->end - deque->begin );
+        deque->end   -= deque->begin;
+        deque->begin -= deque->begin;
+    }
 
     return true;
 }
