@@ -39,14 +39,14 @@ Mathematics and Computer Science}
 \begin{abstract}
 % TODO: rewrite (NB: max. 10 lines)
 %In modern computer hardware architecture, memory is organized in a hierarchy
-consisting of several types of memory with different memory sizes, block
-transfer sizes and access times. The cache-oblivious model has been proposed
-to reflect this reality more accurately than traditional models. A number of
-algorithms and data structures have been proposed that perform optimally in
-this model. The goal of the proposed research project is to implement a
-selection of cache-oblivious set-like data structures, evaluate their
-performance (in terms of execution time and memory use) in a realistic
-environment, and compare their performance to traditional data structures.
+%consisting of several types of memory with different memory sizes, block
+%transfer sizes and access times. The cache-oblivious model has been proposed
+%to reflect this reality more accurately than traditional models. A number of
+%algorithms and data structures have been proposed that perform optimally in
+%this model. The goal of the proposed research project is to implement a
+%selection of cache-oblivious set-like data structures, evaluate their
+%performance (in terms of execution time and memory use) in a realistic
+%environment, and compare their performance to traditional data structures.
 \end{abstract}
 
 % TODO: update keywords?
@@ -63,7 +63,7 @@ environment, and compare their performance to traditional data structures.
 %     - note that hash tables have poor locality of reference
 %     - note that btrees have good locality of reference but require pagesize
 % -> Finally, present goal of the research (incorporate "Research Questions" in
-proposal)
+% proposal)
 
 % Marielle suggested:
 %  - give the "standard" memory model an explicit name
@@ -226,6 +226,8 @@ not supported either.
 
 % sparse array
 % configurable density parameter
+% note that equal division of gaps over all windows is important
+%   (and note the problems with the "old" behaviour)
 % binary search tree index
 % van Emde Boas lay-out
 % special optimization on insertion (note that it's not described by Bender)

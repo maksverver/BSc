@@ -1,8 +1,10 @@
 #!/bin/sh
 
-NIPSHOME=../../nips_vm/
-NIPSASM="${NIPSHOME}"/nips_asm.pl
+NIPS_HOME=../../nips_vm/
+NIPSASM="${NIPS_HOME}"/nips_asm.pl
 CLASSPATH=../../nips_c/lib/nips-promela-compiler.jar
+
+export NIPS_HOME CLASSPATH
 
 mkdir -p build
 for file in $@
