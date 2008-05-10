@@ -1,0 +1,2 @@
+MODEL=eratosthenes
+SET="btree pagesize=16384"

@@ -1,6 +1,6 @@
 /* Peterson's algorithm for N processes - see Lynch's book, p. 284 */
 
-#define N	3	/* nr of processes */
+#define N	4	/* nr of processes */
 
 byte turn[N], flag[N];
 

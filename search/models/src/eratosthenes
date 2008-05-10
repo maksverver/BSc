@@ -2,7 +2,7 @@
 	The Sieve of Eratosthenes (c. 276-196 BC)
 	Prints all prime numbers up to MAX
 */
-#define MAX	25
+#define MAX	40
 
 mtype = { number, eof };
 

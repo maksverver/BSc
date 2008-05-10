@@ -1,0 +1,2 @@
+MODEL=eratosthenes
+SET="hash capacity=1000000"

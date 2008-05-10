@@ -67,12 +67,14 @@ Mathematics and Computer Science}
 
 % Marielle suggested:
 %  - give the "standard" memory model an explicit name
-%  - move example of cache oblivious data structures to front
+%    (isn't "cache-unaware" enough?)
+%  - move examples of cache oblivious data structures to front
 %  - mention examples of cache unaware and cache aware algorithms
+%    (at least Btree, tries and hash tables are mentioned)
 
-% Note explicitly that cache-oblivious algorithms are relatively complex, so
-% that the main question is wether the improvedlocality of reference 
-% compensates for the overhead incurred.
+% Note explicitly that cache-oblivious algorithms are relatively complex
+% resulting in higher constant consts, so that the main question is wether
+% the improved locality of reference compensates for the overhead incurred.
 
 Text here will be mostly copied from the proposal.
 
@@ -94,30 +96,25 @@ interest to this application.
 State space search is used to verify the correctness of software programs. For
 this purpose, programs are first modeled using a formal language, that is also
 used to specify properties of the program that should hold during its
-execution. A program can be in a (possibly infinite) amount of states, one of
-which is usually designated the \emph{initial state}. If a transition from one
-state to another is possible (according to the rules of the formal language
-used) the latter state is said to be a \emph{successor state} of the former.
+execution. An executing program can be in a (possibly infinite) amount of states,
+one of which is usually designated the \emph{initial state}. If a transition
+from one state to another is possible (according to the rules of the formal
+language used) the latter state is said to be a \emph{successor state} of the
+former.
 Generating the successors of a particular state is also called
-\emph{expanding} the state. Of course, the model must be non-deterministic to
-allow more than one successor to exist for a single state.
+\emph{expanding} the state. Of course, the model must include some form of
+non-determinism to allow more than one successor to exist for a single state.
+In practice, this non-determinism usually comes from processes that execute in
+parallel, where the precise interleaving of the (observed) execution of
+instructions in these processes is non-deterministic, unless synchronization
+primitives (such as channels, semaphores, atomic execution blocks, et cetera)
+are used to enforce a particular ordering.
 
 The set of all states reachable by transitions from the initial state is called
 the \emph{state space} of a model, and it is the goal of a state space search
 algorithm to generate all of these states, in order to check that desired
 properties hold in all of them. For this approach it is often required that
 the state space be finite (for obvious reasons).
-
-The outline of a state space search algorithm is given in Program
-\ref{prog-search}. Note that in addition to the initial state and a function
-to generate successors, a queue and a set data structure are used. The queue
-holds states that have been generated but not yet expanded and is used to
-determine what state to expand next. The set holds all states that have been
-generated so far and is used to prevent a single state from being expanded
-more than once.
-
-% TODO: note that the algorithm uses the queue, successors and set, and that
-the set is the bottleneck.
 
 \begin{program}
 \begin{verbatim}
@@ -138,13 +135,34 @@ while (!queue.empty()) {
 \label{prog-search}
 \end{program}
 
-% TODO: different name?
+The outline of a state space search algorithm is given in Program
+\ref{prog-search}. Note that in addition to the initial state and a function
+to generate successors, a queue and a set data structure are used. The queue
+holds states that have been generated but not yet expanded and is used to
+determine what state to expand next. The set holds all states that have been
+generated so far and is used to prevent a single state from being expanded
+more than once.
 
-% Describe case: state search, set data structure.
-% Describe (globally) what to measure: execution time
+Depending on how states are inserted and extracted from the queue, the search
+may be breadth-first (meaning that all states that are reachable in $N$ steps
+from the initial state are expanded before any states that require more than
+$N$ steps) or depth-first (meaning that states that are generated most recently
+by the successor function are expanded first). In the first case, the queue
+operates by a first-in first-out principle, while in the second case the queue
+works in a last-in first-out (stack) principle. In general, breadth-first
+search requires a much larger queue capacity than depth-first search.
+
+From the pseudo-code it is clear that the state space search algorithm does not
+accomplish much by itself; instead, the real work is done by the successor
+function and the queue and the set datastructures. Queues can easily be
+implemented efficiently (adding and removing states takes O(1) time).
+The efficiency of the successor function depends on the execution model used,
+but is typically linear in the number of states produced. In practice,
+therefore, the bottleneck of the algorithm is the set data structure.
 
 \section{Methodology}
 
+% Describe (globally) what to measure: execution time
 % - NIPS VM
 % - SPIN model checker
 % - Promela-to-NIPS compiler
@@ -163,6 +181,10 @@ custom format, a PROMELA compiler is also available to generate the required
 bytecode from the Spin models.\cite{nips} The NIPS VM is prefered to over the
 Spin tools because it was designed to be embedded in other programs and as
 such is more easily integrated in our framework.
+
+The NIPS VM represents program state as a binary string; the size of the state
+depends on the number of active processes in the program, and is typically in
+the order of a few hundred bytes.
 
 \section{Data Structures}
 % TODO: copy motivation for reimplementation from proposal
@@ -236,7 +258,43 @@ not supported either.
 
 \section{Metrics}
 % Describe how performance was measured
-% Describe data set used
+%  (mock set implementation; times/sizes subtracted)
+
+% Describe data set used; per model:
+%   average state size
+%   total size
+%   ratio of insertions/queries
+
+% Note that state size depends on number of processes
+
+The following models are used for benchmarking:
+\begin{itemize}
+\item\verb#eratosthenes# is a parallel implementation of the sieve
+of Eratosthenes which is used to find prime numbers upto a given maximum.
+It has a single parameter $N$: only integers from 2 to $N$ (exclusive) are
+tested. A new process is created for every prime number found, and as a result
+the state space can only by exhaustively searched for relatively small values
+of $N$ (e.g. $N < 40$). Because processes are dynamically created, state size
+also varies during execution.
+
+\item\verb#leader2# is a leader election algorithm with a configurable number
+of processes competing for leadership ($N$). Since a constant number of
+processes will be created and these processes cannot make progress until all
+of them are created, almost all states have the same size.
+
+\item\verb#peterson_N# is a Peterson's solution to the multi-process mutual
+exclusion problem (using global variables instead of channels for
+communication) with a configurable number of processes ($N$). The processes
+are created atomically, so the state size is constant after initialization.
+
+% mobile1
+% pftp
+% snoopy
+% sort
+
+% TODO: table of models with parameters, 
+
+\end{itemize}
 
 \section{Results}
 % Present results!
