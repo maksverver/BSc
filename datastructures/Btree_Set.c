@@ -16,6 +16,8 @@
 #include <stdbool.h>
 #include <string.h>
 
+#define MIN_VALUES_PER_PAGE   2
+
 /* Page lay-out:
 
     |---- 'pagesize' bytes ---|
@@ -203,7 +205,7 @@ static PageEntry *insert_entry( Btree_Set *set,
         int n, k, new_page;
 
         /* For now, just split in the middle.
-           This works because we require all keys to be less than 1/4th of a
+           This works because we require all keys to be less than 1/2 of a
            page (minus the required index size) so no matter how we split, we
            can always insert the new element in either of the two new pages. */
         k = N/2;
@@ -335,7 +337,8 @@ static bool find_or_insert( Btree_Set *set,
 
 static bool set_insert(Btree_Set *set, const void *key_data, size_t key_size)
 {
-    assert(key_size <= (set->pagesize - ISIZE(4))/4);
+    assert( key_size <= (set->pagesize - ISIZE(MIN_VALUES_PER_PAGE))
+                        / MIN_VALUES_PER_PAGE );
     set->mem_used = 0;
     return find_or_insert(set, key_data, key_size, true);
 }
@@ -353,7 +356,7 @@ Set *Btree_Set_create(Allocator *allocator, int pagesize)
     size_t mem_size;
 
     /* Ensure page size is valid */
-    assert(pagesize > ISIZE(4));
+    assert(pagesize > ISIZE(MIN_VALUES_PER_PAGE));
     assert(pagesize%sizeof(int) == 0);
     assert(pagesize%sizeof(int) == 0);
 
@@ -364,7 +367,7 @@ Set *Btree_Set_create(Allocator *allocator, int pagesize)
 
     /* Temporary memory is needed to copy entries, so an upper bound is:
        H*pagesize/4, where H is the maximum height of the B-tree. */
-    mem_size = 32*pagesize/4;
+    mem_size = 64*pagesize/4;
     mem = malloc(mem_size);
     if (mem == NULL)
     {

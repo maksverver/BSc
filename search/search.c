@@ -103,9 +103,9 @@ static double now()
 void report_header(FILE *fp)
 {
     fprintf( fp,
-        " expanded   queued   transit. wc.time  u.time  s.time  res.size   virt.size\n");
+        "#expanded   queued   transit. wc.time  u.time  s.time  res.size   virt.size\n");
     fprintf( fp,
-        "--------- --------- --------- ------- -------  ------ ----------- -----------\n");
+        "#-------- --------- --------- ------- -------  ------ ----------- -----------\n");
 }
 
 void report(FILE *fp, SearchContext *sc)
