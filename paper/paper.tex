@@ -1,4 +1,5 @@
 % TODO: ensure all references in paper.bib are cited in the paper!
+% TODO: format checklist (see e-mail)
 \documentclass{acm_proc_article-sp}
 
 \usepackage{pslatex}
@@ -55,6 +56,64 @@ Mathematics and Computer Science}
 % TODO: more meaningful section titles?
 
 \section{Introduction}
+A fundamental part of theoretical computer science is the study of algorithms (formal descriptions of how computations may be performed) and data structures (descriptions of how information is organized and stored in computers). Traditionally, algorithms have been evaluated in a simplified model of computation. In this model it is assumed that a computer executes an algorithm in discrete steps. At each step it performs one elementary operation (e.g. comparing two numbers, adding one to another, storing a value in memory, et cetera). Each elementary operation is performed within a constant time. In this model, both storing and retrieving data values in memory is considered to be an elementary operation.
+
+This model is close enough to the way computers work to be extremely useful in the development and analysis of data structures and algorithms that work well in practice. However, like every model, it is a simplification of reality. One of the simplifications is the assumption that storing and retrieving data in memory is a constant-time operation (i.e. the uniform memory model). Advancements in software and hardware design over the last two de\-cades have caused this assumption to be increasingly detached from reality.
+
+One of the reasons this assumption fails is that modern operating systems employ virtual memory management, which allows (slower) disk-based storage to be dynamically substituted for (fast\-er) main memory when the latter is in short supply. Another reason is that as processor speeds have increased greatly, the time required to transfer data between processor and main memory has become a bottleneck for many types of computations. Hardware architects have added faster (but small) cache memory at various points in the computer architecture to reduce this problem, but this increases the differences in access time between different types of memory.
+
+As a result, a modern computer system lacks a central memory storage with uniform performance characteristics. Instead, it employs a hierarchy of memory storage types. Figure \ref{fig-memhier} gives a typical example of such a hierarchy. The processor can directly manipulate data contained in its registers only. To access data in a lower level in the memory hierarchy, the data must be transfered upward through the memory hierarchy. Memory is typically transfered in blocks of data of a fixed size (although bulk transfers involving multiple blocks of data at once are also supported at the memory and disk level).
+
+\begin{figure}
+\centering
+\includegraphics{memhier}
+\caption{Schematic depiction of the memory hierarchy}\label{fig-memhier}
+\end{figure}
+
+In the memory hierarchy, every next level of storage is both significantly slower and significantly larger than the one above it and with increasing memory sizes, the block size increases as well. Table \ref{tab-memhier} gives an overview of typical memory sizes, block sizes, and access times. The values for the (general purpose) registers, L1 cache and L2 cache are those for the Pentium M processor as given in \cite{intel-opt}; other values are approximate.
+
+\begin{table}
+\begin{center}
+\begin{tabular}{ l l l l }
+\hline
+\textbf{Type} & \textbf{Total Size} & \textbf{Block Size} & \textbf{Access Time} \\
+\hline
+Registers  &   32 bytes & 4 bytes & 1 cycle \\
+L1 Cache   &   32 KB    & 64 bytes & 3 cyles \\
+L2 Cache   &    1 MB    & 64 bytes & 9 cycles \\
+RAM        &   ~2 GB    & 1 KB     & 50-100 cycles \\
+Disk       & ~300 GB    & 4 KB     & 5,000-10,000 cycles \\
+\hline
+\end{tabular}
+\caption{Sizes and access times of various types of storage}
+\label{tab-memhier}
+\end{center}
+\end{table}
+
+To conclude: the memory model used in real computer systems is quite a bit more complex than the uniform memory model assumed. Given this reality, the performance of many existing algorithms and data structures can be improved by taking the existence of a memory hierarchy into account. This has prompted research into new memory models that are more realistic. We will consider three classes of data structures and algorithms, depending on the assumptions that are made about the environment in their definition:
+\begin{list}{}{}
+\item \textbf{Cache-unaware} data structures and algorithms are designed with the traditional uniform memory model in mind, without considering the existance of a memory hierarchy, and may therefore not perform optimally in practice.
+\item \textbf{Cache-aware} (or \textbf{cache-conscious}) data structures and algorithms are designed to perform optimally in the external memory model (,described below) but require parametrization with some or all properties of the cache layout (such as block size or cache memory size).
+\item \textbf{Cache-oblivious} data structures and algorithms are designed to perform optimally in the cache-oblivious model (which will also be described below) which does not allow parametrization with properties of the cache layout.
+\end{list}
+
+Plenty of cache-unaware and cache-aware data structures have been developed and these are also widely used in practice. Altough some research has been done for cache-oblivious data structures, they are seldom used in practice. The main contribution of this paper is to give some insight in the practical merit of cache-oblivious data structures.
+
+\subsection{External Memory Model}
+One of the earliest models to take the differences in memory access cost into account is the external memory model, described by Aggarwal and Vitter \cite{aggarwal1988ioc}. They make a distinction between internal memory (which is limited in size) and external memory (which is virtually unlimited). The external memory is subdivided into blocks of a fixed size and only entire blocks of data can be transferred between the two memories; additionally, consecutive blocks can be transfered at reduced cost (so-called bulk transfer). Although Aggarwal and Vitter focus on magnetic disk as a storage medium for external memory, the model can be generalized to apply to every pair of adjacent levels in the memory hierarchy. In that case, the possibility of bulk transfer may have to be dropped.
+
+We will call algorithms that are designed to minimize the number of transfers in a two-level memory hierarchy ``cache-aware'' (as opposed to traditional ``cache-unaware'' algorithms) or ``cache-conscious''. These algorithms typically rely on knowledge of the block size to achieve optimal performance.
+
+\subsection{Hierarchical Memory Model}
+The external memory model has the limitation that it only describes two levels of storage, while we have seen that in practice the memory hierarchy contains more than just two levels. Even though the external memory model can be used to describe any pair of adjacent levels, a particular algorithm can only be tuned to one. Aggarwal, Alpern, Chandra and Snir \cite{aggarwal1987mhm} addressed this shortcoming by introducing a hierarchical memory model in which the cost of accessing a value at specific memory address is described by a non-decreasing function of this address, which means that accessing data at higher addresses can be slower than at lower addresses. This more closely resembles a real memory hierarchy, but assumes that the application has full control over which data is placed where, which is usually not the case in practice, making their model of little use in the design and evaluation of practical algorithms.
+
+\subsection{Cache-Oblivious Memory Model}
+A different approach to generalizing the external memory model was taken by Prokop \cite{prokop1999coa} who proposed the cache-oblivious model, which consists of an infinitely large external memory and an internal memory of size M which operates as a cache for the external memory. Data is transferred between the two in aligned data blocks of size B. In contrast with the hierarchical memory model, the application does not have explicit control over the transfering of blocks between the two memories. Instead, it is assumed that an optimal cache manager exists which minimizes the number of block transfers over the execution the program. Additionally (and in contrast with the external memory model) the values of parameters like M and B are not known to the application, so they cannot be used explicitly when defining algorithms and datastructures. Of course, analysis in terms of memory transfers does involve these parameters, so the number of memory transfers performed is still a function of M and B (and other parameters relevant to the problem).
+
+Algorithms that perform optimally in this model are called ``cache-oblivious'' and they distinguish themselves from cache-aware algorithms in that they cannot rely on knowledge of the block size or other specific properties of the cache configuration. The key advantage of this class of algorithms is that they are implicitly tuned to all levels in the memory hierarchy at once. It has been conjectured that these algorithms may therefore perform better than algorithms that are tuned to a specific level in the hierarchy only.
+
+Demaine gives an introduction into the cache-oblivious memory model and an overview of a selection of cache-oblivious data structures and algorithms \cite{demaine2002coa}. He also motivates the simplifications made in the cache-oblivious memory model, such as the assumption of full cache associativity and an optimal replacement policy.
+
 % Copy and shorten introduction from proposal
 % -> Motivate research into cache-efficient algorithms
 % -> Move "classification" subsection describing three models to front
@@ -76,15 +135,30 @@ Mathematics and Computer Science}
 % resulting in higher constant consts, so that the main question is wether
 % the improved locality of reference compensates for the overhead incurred.
 
-Text here will be mostly copied from the proposal.
+\section{Contributions}
+Several cache-oblivious data structures and algorithms have been proposed. Complexity analysis shows that the proposed solutions are asymptotically optimal. However, in software engineering practice we are not only interested in computational complexity, but also in the practical performance of data structures and algorithms. Indeed, many algorithms that have suboptimal computational complexity are actually widely used because they perform well in practice (for example, sorting algorithms like Quicksort and Shell sort) and the converse is true as well: some algorithms, although theoretically sound, are unsuitable for practical use because of greater memory requirements, longer execution time, or difficulty of implementation (for example: linear-time construction of suffix arrays is possible, but in practice slower alternatives are often prefered that are easier to implement and require less memory).
+
+This raises the question whether cache-oblivious data structures are actually preferable to traditional data structures in practice. To determine if cache-oblivious data structures have practical merit, empirical performance data is required, which is scarce as existing research has focused mainly on theoretical analysis. This paper addresses the question by reporting on the performance of newly implemented (but previously described) cache-oblivious data structures and their traditional counterparts (both cache-aware and cache-unaware data structures).
 
 \section{Related Work}
-% Present related work
+Many data structures and algorithms have been analyzed in the cache-oblivious model. Several new data structures and algorithms have been developed that perform optimally in this mo\-del as well. Prokop presents asymptotically optimal cache-oblivious algorithms for matrix transposition, fast Fourier transformation and sorting \cite{prokop1999coa}.
 
-Text here will be mostly copied from the proposal.
+Bender, Demaine and Farach-Colton designed a cache-oblivious data structure that supports the same operations as a B-tree \cite{bender2005cob} achieving optimal complexity bounds on search and nearly-optimal bounds on insertion. Later, Bender, Duan, Iacono and Wu simplified the data structure \cite{bender2004lpc} while preserving the supported operations and complexity bounds and adding support for finger searches. The latter data structure consists of a sparse array (stored in a linear amount of memory) with a static search tree in van Emde Boas layout (named for similarity to a different data structure proposed by van Emde Boas et al. \cite{vanemdeboas1976dai}).
 
-\section{Test Case}
-As a test case, the scenario of a state space search has been chosen. This is a
+Askitis and Zobel \cite{askitis2005ccc} propose a way to make chained hash tables more cache-efficient, by storing bucket contents in contiguous memory instead of using a linked list. This means buckets have to be resized on insertions and deletions, but their experiments show a performance gain over traditional methods (especially when the hash table is heavily loaded).
+
+Vitter presents a theoretical survey of algorithms evaluated in a parallel disk model \cite{vitter2001ema}, which is a refinement of the external memory model described by Aggarwal and Vitter, but only allows parallel transfer of multiple blocks from different disks, which is more realistic. Unfortunately, his survey lacks empirical results.
+
+Olsen and Skov evaluated two cache-oblivious priority queue data structures in practice \cite{olsen2002coa} and designed an optimal cache-obli\-vious priority deque. Their main result is that although the cache-obli\-vious data structures they examined make more efficient use of the cache, they do not perform better than traditional priority queue implementations.
+
+
+\section{Methods}
+In order to gather emperical data, the research approach must be made more concrete. We will need to limit ourselves to a specific class of data structures, since algorithms and data structures offering different functionality cannot be compared in a meaningful way. Furthermore, we will need to select a proper scenario in which the data structures are evaluated, as conclusions on the practical merit of the data structures depend on the degree to which the test scenario is realistic.
+
+Furthermore, we will need to define what practical performance is. We will measure two properties: primarily, the total running time of our test application, and secondarily the memory used. The rationale for selecting these metrics is that if the data structures perform identical functions and plenty of memory is available, the only observable difference in running a program using different data structures will be the run time. Memory use is of secondary interest because in practice memory may be limited, which would preclude the use of certain data structures that require a lot of memory to function.
+
+\subsection{State Space Search}
+As the test application, that of a state space search has been chosen. This is a
 suitable scenario for two reasons. First, it is commonly used as a practical
 component of formal methods for software verification, and therefore good
 algorithms are of great practical significance. Second, as we will explain
@@ -160,7 +234,7 @@ The efficiency of the successor function depends on the execution model used,
 but is typically linear in the number of states produced. In practice,
 therefore, the bottleneck of the algorithm is the set data structure.
 
-\section{Methodology}
+\subsection{Experimental Framework}
 
 % Describe (globally) what to measure: execution time
 % - NIPS VM
@@ -186,14 +260,14 @@ The NIPS VM represents program state as a binary string; the size of the state
 depends on the number of active processes in the program, and is typically in
 the order of a few hundred bytes.
 
-\section{Data Structures}
+\subsection{Data Structures}
 % TODO: copy motivation for reimplementation from proposal
 % TODO: specify required operations (insert&contains)
 % TODO: note that all data structures require contiguous memory
 %       (except the Bender set)
 % TODO: note use of mmap for automatic storage management
 
-\subsection{Hash Table Implementation}
+\subsubsection{Hash Table Implementation}
 Hash tables are widely used as a fast (O($1$)) data structure especially when
 used for in-memory storage. In its simplest form, a hash table consists of an
 index array (the \emph{index}) with a fixed number of slots. A \emph{hash
@@ -224,7 +298,7 @@ deal with holes that would otherwise occur in the stored file. For our
 experiments the FNV-1a hash function \cite{noll2004fnv} is used (modulo the
 size of the index) to map values to slots.
 
-\subsection{B-tree Implementation}
+\subsubsection{B-tree Implementation}
 The B-tree data structure was first proposed by Bayer and McCreight
 \cite{bayer1970oam} and is widely implemented and often described in
 textbooks. Our implementation is based on the description by Kifer, Bernstein
@@ -236,14 +310,32 @@ values, which makes them especially useful for purposes of on-disk storage
 where reading and writing data in a few large blocks is relatively cheap
 compared to accessing several smaller blocks.
 
+B-trees work by keeping as much values as possible, in order, in a single
+page. Pages are ordered in a tree structure, where interior nodes store
+pointers to child nodes. Pointers originate at a pair of adjacent values,
+and point to a subtree containing only values that fall in between those
+values.
+
+When a new value does not fit in the page where it is to be inserted,
+the page is split into two pages; the median value from the old page is
+moved to the parent page, and two new pages (containing the values less
+than respectively greater than the median) are created. When the top-most
+page needs to be split, a new (empty) top-level page is created and the height
+of the B-tree is increased by one.
+
+B-trees are well suited to storing variable length values, as pages can
+store many values as long as the combined size of the values and pointers
+does not exceed the pagesize.
+
 % TODO: picture and description
 
-Our does not support storing values larger than the size of a page (which
-requires special handling, usually by assigning special overflow pages to hold
-the portion of the value that does not fit in the page). Deletion of items is
-not supported either.
+Note that there is no obvious way to store values that are larger than the
+size of a single page. Production-quality implementations handle this case
+separately, but our implementation does not support this scenario and
+requires stored values to be smaller than the pagesize. Additionally,
+deletion of items has not been implemented.
 
-\section{Cache-Oblivious Dictionary Implementation}
+\subsubsection{Cache-Oblivious Dictionary Implementation}
 % TODO: reference (if not included earlier)
 
 % sparse array
@@ -254,9 +346,7 @@ not supported either.
 % van Emde Boas lay-out
 % special optimization on insertion (note that it's not described by Bender)
 
-\subsection{Experimental Environment}
-
-\section{Metrics}
+\subsection{Measurements}
 % Describe how performance was measured
 %  (mock set implementation; times/sizes subtracted)
 
@@ -305,7 +395,7 @@ are created atomically, so the state size is constant after initialization.
 %
 %   
 
-\section{Discussions}
+\section{Discussion}
 % Explain results, draw conclusions.
 
 \section{Conclusion}
