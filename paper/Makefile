@@ -1,5 +1,7 @@
 FIGURES=memhier.eps
 
+all: paper.dvi
+
 paper.dvi: paper.tex paper.bib $(FIGURES)
 	latex "$<"
 	bibtex "`basename "$<" .tex`".aux
