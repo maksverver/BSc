@@ -195,16 +195,22 @@ Set *Set_create_from_args(int argc, const char * const *argv)
         break;
 
     case BDB_Btree:
+/*
         if (path == NULL)
             return NULL;
         result = BDB_Btree_Set_create(path);
         break;
+*/
+	return NULL;
 
     case BDB_Hash:
+/*
         if (path == NULL)
             return NULL;
         result = BDB_Hash_Set_create(path);
         break;
+*/
+	return NULL;
 
     case Bender:
         /* Set default density (if none specified) */
