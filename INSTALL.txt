@@ -1,0 +1,12 @@
+To install the testing framework, do the following:
+ - extract the GIT code into a project root directory
+ - extract the NIPS VM code into a subdirectory of the root called "nips_vm"
+ - extract the NIPS PROMELA Compiler code into a subdirectory called "nips_c"
+ - Run "make" in the "nips_vm" diretory
+ - Run "ant" in the "nips_c" directory
+ - Run "make" in the project root directory
+
+Note that the NIPS PROMELA Compiler (and the Java SDK and Apache Ant) is only 
+needed to compile the Promela models to NIPS VM format. Perl is needed to
+execute the NIPS assembler. Instead of installing these dependencies, binary
+bytecode files of the models can be used.
