@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 MODELS=../models/
 
@@ -7,6 +7,7 @@ MODELS=../models/
 # External file declares:
 MODEL=                                  # base name of model to use
 SET=                                    # set configuration 
+REPEAT=5                                # number of iterations
 MAXVSZ=unlimited                        # maximum virtual set size
 INTERVAL=1000                           # reporting interval
 MAXIT=10000000                          # maximum number of iterations
@@ -20,8 +21,21 @@ source $1
 [ ! -e "${MODELS}"/"$MODEL".b ] && echo 'Model bytecode file does not exist' \
                                 && exit 1
 
-mkdir -p "`basename "$OUTPUT"`"
-( ulimit -v $MAXVSZ &&
-  ../search -l "$MAXIT" -i "$INTERVAL" -m "${MODELS}"/"$MODEL".b $SET \
-  > "$OUTPUT" )
+mkdir -p "`dirname "$OUTPUT"`"
+for ((n=1; $n<=$REPEAT; n=$n+1))
+do 
 
+  # Determine output filename
+  if [ "$OUTPUT" = "/dev/null" ]
+  then
+    out=/dev/null
+  else
+    out="$OUTPUT"-$n
+  fi
+
+  # Run test
+  ( ulimit -v $MAXVSZ &&
+    ../search -l "$MAXIT" -i "$INTERVAL" -m "${MODELS}"/"$MODEL".b $SET \
+    > "$out" )
+
+done
