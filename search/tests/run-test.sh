@@ -38,4 +38,7 @@ do
     ../search -l "$MAXIT" -i "$INTERVAL" -m "${MODELS}"/"$MODEL".b $SET \
     > "$out" )
 
+  # Sleep for some time to give the OS a chance to swap stuff back in
+  sleep 10
+
 done
