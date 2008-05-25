@@ -8,7 +8,7 @@ MODELS=../models/
 MODEL=                                  # base name of model to use
 SET=                                    # set configuration 
 REPEAT=3                                # number of iterations
-MAXVSZ=unlimited                        # maximum virtual set size
+MAXVSS=unlimited                        # maximum virtual set size
 INTERVAL=10000                          # reporting interval
 MAXIT=10000000                          # maximum number of iterations
 OUTPUT="results/`basename "$1"`"        # output file
@@ -34,7 +34,7 @@ do
   fi
 
   # Run test
-  ( ulimit -v $MAXVSZ &&
+  ( ulimit -v $MAXVSS &&
     ../search -l "$MAXIT" -i "$INTERVAL" -m "${MODELS}"/"$MODEL".b $SET \
     > "$out" )
 
