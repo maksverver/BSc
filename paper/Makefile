@@ -1,7 +1,8 @@
 PLOTS=fig-queuesize.eps \
       fig-eratosthenes_vss.eps fig-eratosthenes_wctime.eps \
       fig-eratosthenes-bender_vss.eps fig-eratosthenes-bender_wctime.eps \
-      fig-eratosthenes-hash_vss.eps fig-eratosthenes-hash_wctime.eps 
+      fig-eratosthenes-hash_vss.eps fig-eratosthenes-hash_wctime.eps \
+      fig-eratosthenes-btree_vss.eps fig-eratosthenes-btree_wctime.eps
 FIGURES=memhier.eps bender-set.eps $(PLOTS)
 
 all: paper.dvi

@@ -502,6 +502,24 @@ are created atomically, so the state size is constant after initialization.
 
 % TODO: table of models with parameters, 
 
+\begin{table}
+\begin{center}
+\begin{tabular}{ l l l l }
+\hline
+\textbf{Case} & \textbf{Parameters} & \textbf{Iterations} & \textbf{Transitions} \\
+\hline
+eratosthenes & $N=40$ & 1,019,960 & 4,923,218 \\
+leader2 & $N=5$ & 5,950,945 & 23,856,363 \\
+peterson\_N & \\
+\hline
+\end{tabular}
+\caption{Properties of test cases used}
+\label{tab-cases}
+\end{center}
+\end{table}
+
+
+
 \end{itemize}
 
 \section{Results}
@@ -524,15 +542,29 @@ are created atomically, so the state size is constant after initialization.
 \begin{figure}
 \centering
 \includegraphics[width=83mm]{fig-eratosthenes-hash_wctime}
-\caption{Eratosthenes execution time}
-\label{fig-eratosthenes-bender_wctime}
+\caption{Eratosthenes/hash table execution time}
+\label{fig-eratosthenes-hash_wctime}
 \end{figure}
 
 \begin{figure}
 \centering
 \includegraphics[width=83mm]{fig-eratosthenes-hash_vss}
-\caption{Eratosthenes memory usage}
-\label{fig-eratosthenes-bender_vss}
+\caption{Eratosthenes/hash table memory usage}
+\label{fig-eratosthenes-hash_vss}
+\end{figure}
+
+\begin{figure}
+\centering
+\includegraphics[width=83mm]{fig-eratosthenes-btree_wctime}
+\caption{Eratosthenes/B-tree execution time}
+\label{fig-eratosthenes-btree}
+\end{figure}
+
+\begin{figure}
+\centering
+\includegraphics[width=83mm]{fig-eratosthenes-btree_vss}
+\caption{Eratosthenes/B-tree memory usage}
+\label{fig-eratosthenes-btree}
 \end{figure}
 
 
