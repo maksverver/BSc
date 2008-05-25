@@ -1,6 +1,7 @@
-PLOTS=fig-queuesize.tex \
-      fig-eratosthenes_vss.tex fig-eratosthenes_wctime.tex \
-      fig-eratosthenes-bender_vss.tex fig-eratosthenes-bender_wctime.tex
+PLOTS=fig-queuesize.eps \
+      fig-eratosthenes_vss.eps fig-eratosthenes_wctime.eps \
+      fig-eratosthenes-bender_vss.eps fig-eratosthenes-bender_wctime.eps \
+      fig-eratosthenes-hash_vss.eps fig-eratosthenes-hash_wctime.eps 
 FIGURES=memhier.eps bender-set.eps $(PLOTS)
 
 all: paper.dvi
@@ -11,8 +12,8 @@ paper.dvi: paper.tex paper.bib $(FIGURES)
 	latex "$<"
 	latex "$<"
 
-$(PLOTS): fig-%.tex: %.plot
-	gnuplot pstex.plot $< >$@
+$(PLOTS): fig-%.eps: %.plot
+	gnuplot eps.plot $< >$@
 
 paper.pdf: paper.dvi
 	sh -c 'for f in $(FIGURES); do epstopdf "$$f"; done'

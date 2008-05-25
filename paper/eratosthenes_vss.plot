@@ -1,6 +1,5 @@
-set xlabel "Iterations"
-set ylabel "Memory (bytes)"
-set autoscale
+set xlabel "Iterations (x1000)"
+set ylabel "Memory (MB)"
 plot "aggregated/eratosthenes-01_vss" with lines title "A", \
      "aggregated/eratosthenes-02_vss" with lines title "B", \
      "aggregated/eratosthenes-03_vss" with lines title "C", \

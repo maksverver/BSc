@@ -10,8 +10,12 @@
 # The first value on each line is interpreted as a key; for each key, the
 # median, minimum and maximum values of the data files are reported.
 #
+# HACK:
+# Now also scales values (not really the proper place to that, but ok).
+#
 
-COLS = [ 'its', 'qsz', 'trans', 'wctime', 'utime', 'stime', 'rss', 'vss' ]
+COLS  = [ 'its', 'qsz', 'trans', 'wctime', 'utime', 'stime',    'rss',    'vss' ]
+divby = [  1000,  1000,    1000,        1,       1,       1,  1048576, 1048576  ]
 
 from sys import argv, exit
 
@@ -53,10 +57,11 @@ for path in argv[2:]:
         val = row[col]
 
         # Interpret value
-        if val.find('.') < 0:
-            val = int(row[col])
-        else:
-            val = float(row[col])
+        val = float(row[col])
+        #if val.find('.') < 0:
+        #    val = int(row[col])
+        #else:
+        #    val = float(row[col])
 
         # Store result
         if key not in values:
@@ -76,4 +81,4 @@ for key, vals in items:
     else:
         medi = vals[len(vals)/2]
 
-    print "%19s %19s %19s %19s" % (str(key), str(medi), str(mini), str(maxi))
+    print "%19s %19s %19s %19s" % (str(key/divby[0]), str(medi/divby[col]), str(mini/divby[col]), str(maxi/divby[col]))
