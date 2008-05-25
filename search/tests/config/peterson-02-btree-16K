@@ -1,0 +1,2 @@
+MODEL=peterson_N
+SET="btree pagesize=16384"
