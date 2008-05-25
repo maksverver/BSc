@@ -1,0 +1,2 @@
+MODEL=leader2
+SET="btree pagesize=16384"

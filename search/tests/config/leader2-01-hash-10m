@@ -1,0 +1,2 @@
+MODEL=leader2
+SET="hash capacity=100000000"

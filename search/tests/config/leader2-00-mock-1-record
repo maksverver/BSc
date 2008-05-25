@@ -1,0 +1,4 @@
+MODEL=leader2
+SET="mock record path=/tmp/mock.log"
+OUTPUT=/dev/null
+REPEAT=1
