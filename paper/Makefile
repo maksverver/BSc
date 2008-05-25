@@ -1,4 +1,7 @@
-FIGURES=memhier.eps bender-set.eps fig-queuesize.tex
+PLOTS=fig-queuesize.tex \
+      fig-eratosthenes_vss.tex fig-eratosthenes_wctime.tex \
+      fig-eratosthenes-bender_vss.tex fig-eratosthenes-bender_wctime.tex
+FIGURES=memhier.eps bender-set.eps $(PLOTS)
 
 all: paper.dvi
 
@@ -8,7 +11,7 @@ paper.dvi: paper.tex paper.bib $(FIGURES)
 	latex "$<"
 	latex "$<"
 
-fig-queuesize.tex: queuesize.plot
+$(PLOTS): fig-%.tex: %.plot
 	gnuplot pstex.plot $< >$@
 
 paper.pdf: paper.dvi
@@ -19,10 +22,10 @@ paper.rtf: paper.dvi
 	latex2rtf paper.tex
 
 clean:
-	rm -f paper.{aux,log,bbl,blg}
+	rm -f paper.{log,bbl,blg} *.aux
 
 distclean: clean
-	rm -f paper.dvi *.pdf
+	rm -f paper.dvi *.pdf $(PLOTS)
 
 .PHONY: all clean distclean 
 

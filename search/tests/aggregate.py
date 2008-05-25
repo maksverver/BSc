@@ -11,7 +11,7 @@
 # median, minimum and maximum values of the data files are reported.
 #
 
-COLS = [ 'its', 'qsz', 'trans', 'wctime', 'utime', 'stime', 'rss', 'vsz' ]
+COLS = [ 'its', 'qsz', 'trans', 'wctime', 'utime', 'stime', 'rss', 'vss' ]
 
 from sys import argv, exit
 

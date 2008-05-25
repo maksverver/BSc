@@ -1,2 +1,2 @@
 MODEL=eratosthenes
-SET=Bender density=0.125
+SET="Bender density=0.125"
