@@ -1,3 +1,4 @@
 MODEL=eratosthenes
 SET="mock record path=/tmp/mock.log"
 OUTPUT=/dev/null
+REPEAT=1

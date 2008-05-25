@@ -24,7 +24,7 @@ clean:
 	rm -f $(OBJECTS)
 
 distclean: clean
-	rm -f test-set datastructures.a
+	rm -f test-set test-deque datastructures.a
 
 .PHONY: all clean distclean
 

@@ -1,4 +1,4 @@
-FIGURES=memhier.eps bender-set.eps
+FIGURES=memhier.eps bender-set.eps fig-queuesize.tex
 
 all: paper.dvi
 
@@ -7,6 +7,9 @@ paper.dvi: paper.tex paper.bib $(FIGURES)
 	bibtex "`basename "$<" .tex`".aux
 	latex "$<"
 	latex "$<"
+
+fig-queuesize.tex: queuesize.plot
+	gnuplot pstex.plot $< >$@
 
 paper.pdf: paper.dvi
 	sh -c 'for f in $(FIGURES); do epstopdf "$$f"; done'

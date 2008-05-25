@@ -7,9 +7,9 @@ MODELS=../models/
 # External file declares:
 MODEL=                                  # base name of model to use
 SET=                                    # set configuration 
-REPEAT=5                                # number of iterations
+REPEAT=3                                # number of iterations
 MAXVSZ=unlimited                        # maximum virtual set size
-INTERVAL=1000                           # reporting interval
+INTERVAL=10000                          # reporting interval
 MAXIT=10000000                          # maximum number of iterations
 OUTPUT="results/`basename "$1"`"        # output file
 
