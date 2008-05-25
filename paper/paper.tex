@@ -44,13 +44,13 @@ transfer sizes and access times. To reflect this situation more accurately
 than tradition models, the cache-oblivious model has been proposed, and several
 algorithms and data structures have been proposed that perform optimally in
 this model.
-This paper presents the results of an emperical evaluation of various data
+This paper presents the results of an empirical evaluation of various data
 structures in a realistic scenario, and gives insight into the applicability
 of cache-oblivious data structure in practice.
 \end{abstract}
 
 % TODO: update keywords?
-\keywords{cache efficiency, locality of reference, algorithms}
+\keywords{cache efficiency, locality of reference, algorithms, empirical evaluation}
 
 % TODO: more meaningful section titles?
 
@@ -142,7 +142,11 @@ This raises the question whether cache-oblivious data structures are actually pr
 \section{Related Work}
 Many data structures and algorithms have been analyzed in the cache-oblivious model. Several new data structures and algorithms have been developed that perform optimally in this mo\-del as well. Prokop presents asymptotically optimal cache-oblivious algorithms for matrix transposition, fast Fourier transformation and sorting \cite{prokop1999coa}.
 
-Bender, Demaine and Farach-Colton designed a cache-oblivious data structure that supports the same operations as a B-tree \cite{bender2005cob} achieving optimal complexity bounds on search and nearly-optimal bounds on insertion. Later, Bender, Duan, Iacono and Wu simplified the data structure \cite{bender2004lpc} while preserving the supported operations and complexity bounds and adding support for finger searches. The latter data structure consists of a sparse array (stored in a linear amount of memory) with a static search tree in van Emde Boas layout (named for similarity to a different data structure proposed by van Emde Boas et al. \cite{vanemdeboas1976dai}).
+Bender, Demaine and Farach-Colton designed a cache-oblivious data structure that supports the same operations as a B-tree \cite{bender2005cob} achieving optimal complexity bounds on search and nearly-optimal bounds on insertion. This data structure is mostly of theoretic interest, as it is fairly complex to implement and incurs a relatively large overhead in practice.
+
+Later, Bender, Duan, Iacono and Wu simplified the data structure \cite{bender2004lpc} while preserving the supported operations and complexity bounds and adding support for finger searches. The latter data structure consists of a sparse array (stored in a linear amount of memory) with a static tree in van Emde Boas layout (named for similarity to a different data structure proposed by van Emde Boas et al. \cite{vanemdeboas1976dai}).
+
+Several data structures were proposed by Rahman, Cole and Raman \cite{rahman2001opd} amongst them a cache-oblivious exponential search tree with a similar structure as the static search tree proposed by Prokop. In their experimental results the cache-oblivious tree performs worse than the alternatives. Nevertheless, they conclude that \textit{"cache-obli\-vious data structures may have significant practical importance"}.
 
 Askitis and Zobel \cite{askitis2005ccc} propose a way to make chained hash tables more cache-efficient, by storing bucket contents in contiguous memory instead of using a linked list. This means buckets have to be resized on insertions and deletions, but their experiments show a performance gain over traditional methods (especially when the hash table is heavily loaded).
 
@@ -150,9 +154,8 @@ Vitter presents a theoretical survey of algorithms evaluated in a parallel disk 
 
 Olsen and Skov evaluated two cache-oblivious priority queue data structures in practice \cite{olsen2002coa} and designed an optimal cache-obli\-vious priority deque. Their main result is that although the cache-obli\-vious data structures they examined make more efficient use of the cache, they do not perform better than traditional priority queue implementations.
 
-
 \section{Methods}
-In order to gather emperical data, the research approach must be made more concrete. We will need to limit ourselves to a specific class of data structures, since algorithms and data structures offering different functionality cannot be compared in a meaningful way. Furthermore, we will need to select a proper scenario in which the data structures are evaluated, as conclusions on the practical merit of the data structures depend on the degree to which the test scenario is realistic.
+In order to gather empirical data, the research approach must be made more concrete. We will need to limit ourselves to a specific class of data structures, since algorithms and data structures offering different functionality cannot be compared in a meaningful way. Furthermore, we will need to select a proper scenario in which the data structures are evaluated, as conclusions on the practical merit of the data structures depend on the degree to which the test scenario is realistic.
 
 Furthermore, we will need to define what practical performance is. We will measure two properties: primarily, the total running time of our test application, and secondarily the memory used. The rationale for selecting these metrics is that if the data structures perform identical functions and plenty of memory is available, the only observable difference in running a program using different data structures will be the run time. Memory use is of secondary interest because in practice memory may be limited, which would preclude the use of certain data structures that require a lot of memory to function.
 
@@ -251,7 +254,7 @@ For the execution of these models we will use NIPS VM \cite{weber2007evm}, a
 high-performance virtual machine for state space generation that is easily
 embeddable in our framework. Although the NIPS VM only executes bytecode in a
 custom format, a PROMELA compiler is also available to generate the required
-bytecode from the Spin models.\cite{nips} The NIPS VM is prefered to over the
+bytecode from the Spin models.\cite{nipsvm} The NIPS VM is prefered to over the
 Spin tools because it was designed to be embedded in other programs and as
 such is more easily integrated in our framework.
 
@@ -260,11 +263,50 @@ depends on the number of active processes in the program, and is typically in
 the order of a few hundred bytes.
 
 \subsection{Data Structures}
-% TODO: copy motivation for reimplementation from proposal
-% TODO: specify required operations (insert&contains)
-% TODO: note that all data structures require contiguous memory
-%       (except the Bender set)
-% TODO: note use of mmap for automatic storage management
+In the introduction we identified three classes of data structures.
+For our evaluation we have implemented a single representative data structure
+for each class:
+\begin{itemize}
+\item \textbf{Cache-unaware}: hash tables. Hash tables are widely used in practice and noted for good performance if the data set fits in main memory, although they have also been used as an index structure for data stored on disk.
+\item \textbf{Cache-aware}: B-trees. The B-tree is the standard choice for storing ordered data on disk, and depends on a page size being selected that corresponds with the size of data blocks that can be efficiently transferred.
+\item \textbf{Cache-oblivious}: the B-tree-like data structure proposed by Bender, Duan, Iacono and Wu. Since it provides functionality comparable to that of a normal B-tree, this seems like a fair candidate for a comparison. For brevity, this data structure will be refered to as a \emph{Bender set}.
+\end{itemize}
+
+Cache-oblivious data structures are not yet commonly used in practice and to
+our knowledge there are no high-quality implementations publicly available.
+The Bender set will therefore have to be implemented from scratch.
+
+In contrast, both hash tables and B-trees are widely used and there are several
+high quality implementations available as software libraries. It is, however,
+undesirable to use existing libraries for a fair comparison, for two reasons.
+
+First, many existing implementations support additional operations (such as removal of elements, locking and synchronization, atomic transactions, et cetera) which are not used in our experiments, but which may harm the performance of these implementations. Second, many established libraries have been thoroughly optimized while our newly implemented data structures have not. This may give the existing libraries an unfair advantage.
+
+In an attempt to reduce the bias caused by differences in functionality and
+quality between existing and newly developed libraries, all data structures
+used in the performance evaluation have been implemented from scratch.
+
+\subsubsection{Set Operations}
+Dynamic set data structures may support various operations, such as adding and removing elements, testing if a value is an element of the set, finding elements nearby, succeeding or preceding a given value, counting elements in a range, et cetera. However, our state space search algorithm only needs two operations: insertion of new elements (in a set that is initially empty) and testing for the existence of elements. In fact, these two operations can be combined into a single operation. We call this operation \verb#insert(S,x)#. If an element $x$ does not exist in $S$, then $insert(S,x)$ inserts it and returns $0$. If $x$ is already an element of $S$, $insert(S,x)$ returns $1$. The inner loop of our state space algorithm can now be written as follows:
+\begin{verbatim}
+    for (State s : successors(state)) {
+        if (generated.insert(s) == 0) {
+            queue.insert(s);
+        }
+    }
+\end{verbatim}
+
+We now have a single operation that must be implemented by all set data structures. Note that the values that need to be stored in the state space search algorithm are virtual machine state descriptions, which (in the NIPS VM) are opaque variable-length strings. All data structures must therefore support storing strings of varying length efficiently.
+
+\subsubsection{Common Implementation Details}
+For memory management, the data structures make use of memory mapped files. The
+B-tree and hash table implementations use a single file for all data storage;
+the Bender tree uses several files (as discussed below) and some main memory.
+
+The use of memory mapped files means that the operating system is in charge of
+when and which pages are transfered between main memory and disk storage; the
+application assumes no control over this policy. This is in accordance with the
+cache-oblivious model, that assumes no control over the cache is possible.
 
 \subsubsection{Hash Table Implementation}
 Hash tables are widely used as a fast (O($1$)) data structure especially when
@@ -334,16 +376,93 @@ separately, but our implementation does not support this scenario and
 requires stored values to be smaller than the pagesize. Additionally,
 deletion of items has not been implemented.
 
-\subsubsection{Cache-Oblivious Dictionary Implementation}
-% TODO: reference (if not included earlier)
+\subsubsection{Bender Set Implementation}
+The first implementation challenge for the Bender set is that the description
+given by Bender et al. assumes that all values stored in the set are of a
+fixed size, which is not the case in our experimental framework. To work
+around this, we create several separate instances of the Bender set with
+different value sizes which are powers of two. When a value is to be inserted,
+its size is rounded up to a power of two and it is inserted in the
+corresponding set instance. This ensures that the amount of spaces wasted
+remains below 50\% while still allowing values of various sizes to be inserted.
 
-% sparse array
-% configurable density parameter
-% note that equal division of gaps over all windows is important
-%   (and note the problems with the "old" behaviour)
-% binary search tree index
-% van Emde Boas lay-out
-% special optimization on insertion (note that it's not described by Bender)
+The implementation of the Bender set consists of two parts: a sparse array
+storing the values in-order, and a binary tree stored in van Emde Boas
+layout (similar to the one proposed by Prokop). Both the tree and the array
+may contain special \emph{empty values}. A depiction of a Bender set storing
+four values (with a capacity for eight) is given in Figure \ref{fig-bender-set}.
+
+\begin{figure}
+\centering
+\includegraphics{bender-set}
+\caption{A depiction of a Bender set}\label{fig-bender-set}
+\end{figure}
+
+A Bender set is created with a capacity $C$ that is a power of two.
+Initially, the array stores only empty values and is partitioned into
+\emph{windows} on several \emph{levels}.
+On the highest level, there is a single window of size $C$. Each subsequent level
+has twice as many windows of half that size, and the lowest level has size $log_2 C$
+(rounded up to the next power of 2).
+For each level, a maximum density is given, with the lowest level having density 1,
+the highest level having density $\delta$ (these densities are interpolated linearly
+to obtain the density for the intermediary levels).
+
+The top-level density must be a number between $\frac{1}{2}$ and $1$; the optimal value
+depends on practical circumstances such as available memory and the relative cost of
+rebuilding the data structures. Whenever the number of elements stored in
+a window (the window's \emph{population count}) exceeds the size of the window
+multiplied by its maximum density, the window is said to be \emph{overflowing}.
+Overflows are resolved when a higher-level window is \emph{rebalanced},
+meaning that the values in the window are redistributed evenly over the window,
+which will cause some of the values to be moved out from the lower-level window
+which is too full.
+
+Now, to insert a value, the binary tree is used to find a position in the array
+where the value may be inserted (just before its successor). Then, the windows
+overlapping this position are considered from bottom to top, and the first
+window that can support another element without overflowing is selected, and
+rebalanced (thereby resolving the overflow in all lower level windows).
+
+In the case that all windows overlapping the goal position are overflowing, the
+capacity of the data structure is doubled, a new top level is created and then
+the entire array is rebalanced. This is how the set grows when the number of
+elements stored comes too close to the storage capacity.
+
+According to this description (which follows the paper by Bender et al) a window
+is rebalanced every time an element is inserted. As an optimization, our
+implementation does not always rebalance a window. When there is free space
+between the successor and predecessor of the value to be inserted, the value
+is simply inserted in the middle. In our experiments, this optimization
+increased performance somewhat.
+
+One thing that is not specified in the paper by Bender et al, is how the
+population count for windows is kept. One simply option is to keep no such
+information and simply scan part of the array whenever a population count is
+required. Another extreme is to keep population counts for all windows on all
+levels, and update these counts whenever values are inserted or moved. In
+our experiments a compromise seemed to work best: keep population counts only
+for the lowest-level windows, and recompute the counts for higher-level windows
+when required. This saves a lot of recomputation, while keeping the additional
+costs of updating low.
+
+Finally, the Bender set uses a complete binary tree as an index data structure
+to efficiently find the successor element for a given value. The tree is
+stored in memory in van Emde Boas lay-out (as described by Prokop) to allow
+efficient cache-oblivious traversal.
+
+In the tree, the leaf nodes (when numbered from left to right) store the same values
+as the sparse array (including empty values).
+Interior nodes store the maximum value of their two children (or an empty value,
+if both children store an empty value).
+This tree can be used in a similar way as a binary search tree: by examining the
+two children of a node, we can determine wether a searched-for value lies in the
+left or right subtree.
+
+Note that the \emph{structure} of the tree is static and only changes when the
+capacity of the set is increased (in this case, the tree is recreated from scratch).
+Of course, the values stored in the tree have to be updated when the corresponding
+elements of the array change.
 
 \subsection{Measurements}
 % Describe how performance was measured

@@ -1,4 +1,4 @@
-FIGURES=memhier.eps
+FIGURES=memhier.eps bender-set.eps
 
 all: paper.dvi
 
