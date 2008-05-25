@@ -19,3 +19,7 @@ aggregate() {
 
 aggregate eratosthenes vss    base 01 02 03 04 05 06 07 08 09
 aggregate eratosthenes wctime base 01 02 03 04 05 06 07 08 09
+aggregate leader2      vss    base 01 02 03
+aggregate leader2      wctime base 01 02 03
+aggregate peterson     vss    base 01 02 03
+aggregate peterson     wctime base 01 02 03

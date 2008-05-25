@@ -495,12 +495,11 @@ exclusion problem (using global variables instead of channels for
 communication) with a configurable number of processes ($N$). The processes
 are created atomically, so the state size is constant after initialization.
 
-% mobile1
-% pftp
-% snoopy
-% sort
-
-% TODO: table of models with parameters, 
+% Possible additional cases:
+% - mobile1
+% - pftp
+% - snoopy
+% - sort
 
 \begin{table}
 \begin{center}
@@ -508,9 +507,9 @@ are created atomically, so the state size is constant after initialization.
 \hline
 \textbf{Case} & \textbf{Parameters} & \textbf{Iterations} & \textbf{Transitions} \\
 \hline
-eratosthenes & $N=40$ & 1,019,960 & 4,923,218 \\
-leader2 & $N=5$ & 5,950,945 & 23,856,363 \\
-peterson\_N & \\
+eratosthenes & $N=40$ &  1,019,960 &  4,923,218 \\
+leader2      & $N=5$  &  5,950,945 & 23,856,363 \\
+peterson\_N  & $N=4$  & 10,000,000 & 37,434,411 \\
 \hline
 \end{tabular}
 \caption{Properties of test cases used}
@@ -565,6 +564,35 @@ peterson\_N & \\
 \includegraphics[width=83mm]{fig-eratosthenes-btree_vss}
 \caption{Eratosthenes/B-tree memory usage}
 \label{fig-eratosthenes-btree}
+\end{figure}
+
+\begin{figure}
+\centering
+\includegraphics[width=83mm]{fig-leader2_wctime}
+\caption{Leader2 execution time}
+\label{fig-eratosthenes-bender_wctime}
+\end{figure}
+
+\begin{figure}
+\centering
+\includegraphics[width=83mm]{fig-leader2_vss}
+\caption{Leader2 memory usage}
+\label{fig-eratosthenes-bender_wctime}
+\end{figure}
+
+
+\begin{figure}
+\centering
+\includegraphics[width=83mm]{fig-peterson_wctime}
+\caption{Peterson_N execution time}
+\label{fig-eratosthenes-bender_wctime}
+\end{figure}
+
+\begin{figure}
+\centering
+\includegraphics[width=83mm]{fig-peterson_vss}
+\caption{Peterson_N memory usage}
+\label{fig-eratosthenes-bender_wctime}
 \end{figure}
 
 
