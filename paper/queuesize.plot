@@ -1,4 +1,5 @@
-set xlabel "Iterations"
-set ylabel "Queued States"
-set autoscale
-plot "results/eratosthenes-base-1" using 1:2 with lines title "Eratosthenes"
+set xlabel "Iterations (x1000)"
+set ylabel "Queuesize (x1000)"
+plot "aggregated/eratosthenes-base_qsz" with lines title "Eratosthenes", \
+     "aggregated/leader2-base_qsz"      with lines title "Leader2",      \
+     "aggregated/peterson-base_qsz"     with lines title "Petersion_N";

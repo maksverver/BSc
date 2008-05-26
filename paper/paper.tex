@@ -14,8 +14,7 @@
 
 \begin{document}
 
-\title{Evaluation of Cache-Oblivious Data Structures}
-\subtitle{\textit{Work In Progress!}}
+\title{Evaluation of Cache-Oblivious Data Structures [draft-1]}
 
 \numberofauthors{1}
 \author{Maks Verver\\ \email{m.verver@student.utwente.nl}}
@@ -49,7 +48,6 @@ structures in a realistic scenario, and gives insight into the applicability
 of cache-oblivious data structure in practice.
 \end{abstract}
 
-% TODO: update keywords?
 \keywords{cache efficiency, locality of reference, algorithms, empirical evaluation}
 
 % TODO: more meaningful section titles?
@@ -237,12 +235,6 @@ but is typically linear in the number of states produced. In practice,
 therefore, the bottleneck of the algorithm is the set data structure.
 
 \subsection{Experimental Framework}
-
-% Describe (globally) what to measure: execution time
-% - NIPS VM
-% - SPIN model checker
-% - Promela-to-NIPS compiler
-
 For our experimental framework, we need a collection of formal models that are
 representative of those typically used for formal verification, and a way to
 execute them. For the first part, we have looked at Spin \cite{spin}, a widely
@@ -296,7 +288,7 @@ Dynamic set data structures may support various operations, such as adding and r
     }
 \end{verbatim}
 
-We now have a single operation that must be implemented by all set data structures. Note that the values that need to be stored in the state space search algorithm are virtual machine state descriptions, which (in the NIPS VM) are opaque variable-length strings. All data structures must therefore support storing strings of varying length efficiently.
+We now have a single operation that must be implemented by all set data structures. Recall that the values to be stored are virtual machine state descriptions, which are variable-length binary strings. All data structures must therefore support storing strings of varying length efficiently.
 
 \subsubsection{Common Implementation Details}
 For memory management, the data structures make use of memory mapped files. The
@@ -317,8 +309,8 @@ is empty, it may be inserted there. Queries for the existance of an element in
 the hash table similarly see if the queried value is stored at its designated
 slot.
 
-Note that if we insert several different values, some values may map to the
-same slot, which is problematic if each slot can only store one value. There
+When several values are inserted, some values may map to the same slot,
+which is problematic if each slot can only store one value. There
 are a lot of different ways to resolve this collision problem; we use
 \emph{separate chaining} which means that slots do not store values directly,
 but instead each slot stores a pointer to a singly-linked list of values that
@@ -465,15 +457,62 @@ Of course, the values stored in the tree have to be updated when the correspondi
 elements of the array change.
 
 \subsection{Measurements}
-% Describe how performance was measured
-%  (mock set implementation; times/sizes subtracted)
+Measuring the memory usage of a process can be done by retrieving how much of the
+address space has been allocated by a process; typically called the
+\emph{virtual set size}.
+Since a single page can be mapped into memory more than once (either in multiple
+processes, or in the same process) this is not exactly equal to the amount of
+memory allocated for the process, but since the majority of the memory used by
+the data structures is mapped at exactly one location, it is good enough as
+an indication of memory use.
+
+There are several ways of measuring the time a process takes to execute.
+The simplest is counting the number of seconds elapsed since the start of the
+program (called "wall clock time"). This has the disadvantage that concurrently
+executing processes affect the runtime of the process being measured, so on a
+busy system the reported runtime may vary with different executions.
+
+A different way to measure time is using the statistics the kernel collects
+of how many seconds the CPU spends executing instructions for the process
+(both in user space and in kernel space). These values are independent of
+what other processes are doing, which makes them more consistent across
+multiple executions. However, these values do not account for the time the
+system spends waiting (for example, for a page to be swapped in from disk)
+or the time spend by other processes on behalf of the executing process
+(for example, the kernel swap daemon on Linux). Since these factors may have
+a large effect on the total running time of the algorithm, it is undesirable
+to leave these out.
+
+Therefore, we decided to measure wall clock time. In order to deal with
+variations across multiple executions, each experiment is run three times,
+and the median value is used for further analysis.
+
+\subsubsection{Framework Overhead}
+Finally, there is another factor that must be taken into account: the test
+framework uses several components (such as the NIPS VM and a queue) that are
+not being evaluated, yet which do contribute to the memory use and runtime
+of the process. In order to discount these factors, tests are performed using
+a mock set implementation that gives a near-minimal overhead. This works
+by first running with a real set implementation and logging all results
+(the return values of the \verb#insert(S,x)# calls) to a file, and then
+running a second time while reading the stored values. As a result, the mock
+set implementation has very little memory and runtime overhead.
+
+In the results below, all values are reported relative to the values obtained
+using the mock set implementation, which means the overhead of the test
+framework is removed from the results.
+
+\subsubsection{System Configuration}
+The experiments where performed on a 64-bit Linux (kernel 2.6) system
+with an Intel Xeon E5320 processor (1.86 GHz, 4MB cache) and 8GB of main
+memory and 2GB swap file. Although the system is a multiprocessor system
+(and the E5320 is a dual-core processor) all code is single-threaded so
+only a single core is used when executing tests.
 
 % Describe data set used; per model:
-%   average state size
-%   total size
-%   ratio of insertions/queries
-
-% Note that state size depends on number of processes
+%   average state size?
+%   total size?
+%   ratio of insertions/queries?
 
 The following models are used for benchmarking:
 \begin{itemize}
@@ -483,7 +522,7 @@ It has a single parameter $N$: only integers from 2 to $N$ (exclusive) are
 tested. A new process is created for every prime number found, and as a result
 the state space can only by exhaustively searched for relatively small values
 of $N$ (e.g. $N < 40$). Because processes are dynamically created, state size
-also varies during execution.
+increases during execution.
 
 \item\verb#leader2# is a leader election algorithm with a configurable number
 of processes competing for leadership ($N$). Since a constant number of
@@ -494,12 +533,7 @@ of them are created, almost all states have the same size.
 exclusion problem (using global variables instead of channels for
 communication) with a configurable number of processes ($N$). The processes
 are created atomically, so the state size is constant after initialization.
-
-% Possible additional cases:
-% - mobile1
-% - pftp
-% - snoopy
-% - sort
+\end{itemize}
 
 \begin{table}
 \begin{center}
@@ -517,84 +551,106 @@ peterson\_N  & $N=4$  & 10,000,000 & 37,434,411 \\
 \end{center}
 \end{table}
 
+In Table \ref{tab-cases} an overview is given of the parameters of the models used
+and the properties of the execution of the model. Note that the number of transitions
+relative to the number of iterations indicates the percentage of insertion operations
+that results in a new element being added to the set.
 
-
-\end{itemize}
+% Possible additional cases:
+% - mobile1
+% - pftp
+% - snoopy
+% - sort
 
 \section{Results}
+
+TODO: describe parameters of data structures
+Explain results for B-tree (higher page size packs more data), hash table (larger index, less collissions, cache miss anyway)
+
+\begin{figure}
+\centering
+\includegraphics[width=83mm]{fig-queuesize}
+\caption{Queue size}
+\label{fig-quesize}
+\end{figure}
+
+\begin{figure}
+\centering
+\includegraphics[width=83mm]{fig-transitions}
+\caption{Transitions}
+\label{fig-transitions}
+\end{figure}
 
 \begin{figure}
 \centering
 \includegraphics[width=83mm]{fig-eratosthenes-bender_wctime}
-\caption{Eratosthenes/Bender set execution time}
+\caption{Bender set execution time on Eratosthenes}
 \label{fig-eratosthenes-bender_wctime}
 \end{figure}
 
 \begin{figure}
 \centering
 \includegraphics[width=83mm]{fig-eratosthenes-bender_vss}
-\caption{Eratosthenes/Bender set memory usage}
+\caption{Bender set memory usage on Eratosthenes}
 \label{fig-eratosthenes-bender_vss}
 \end{figure}
-
 
 \begin{figure}
 \centering
 \includegraphics[width=83mm]{fig-eratosthenes-hash_wctime}
-\caption{Eratosthenes/hash table execution time}
+\caption{Hash table execution time on Eratosthenes}
 \label{fig-eratosthenes-hash_wctime}
 \end{figure}
 
 \begin{figure}
 \centering
 \includegraphics[width=83mm]{fig-eratosthenes-hash_vss}
-\caption{Eratosthenes/hash table memory usage}
+\caption{Hash table memory usage on Eratosthenes}
 \label{fig-eratosthenes-hash_vss}
 \end{figure}
 
 \begin{figure}
 \centering
 \includegraphics[width=83mm]{fig-eratosthenes-btree_wctime}
-\caption{Eratosthenes/B-tree execution time}
-\label{fig-eratosthenes-btree}
+\caption{B-tree execution time on Eratosthenes}
+\label{fig-eratosthenes-btree_wctime}
 \end{figure}
 
 \begin{figure}
 \centering
 \includegraphics[width=83mm]{fig-eratosthenes-btree_vss}
-\caption{Eratosthenes/B-tree memory usage}
-\label{fig-eratosthenes-btree}
+\caption{B-tree memory usage on Eratosthenes}
+\label{fig-eratosthenes-btree_vss}
 \end{figure}
 
 \begin{figure}
 \centering
 \includegraphics[width=83mm]{fig-leader2_wctime}
-\caption{Leader2 execution time}
-\label{fig-eratosthenes-bender_wctime}
+\caption{Execution times on Leader2}
+\label{fig-leader2_wctime}
 \end{figure}
 
 \begin{figure}
 \centering
 \includegraphics[width=83mm]{fig-leader2_vss}
-\caption{Leader2 memory usage}
-\label{fig-eratosthenes-bender_wctime}
+\caption{Memory usage on Leader2}
+\label{leader2_vss}
 \end{figure}
 
 
 \begin{figure}
 \centering
 \includegraphics[width=83mm]{fig-peterson_wctime}
-\caption{Peterson_N execution time}
-\label{fig-eratosthenes-bender_wctime}
+\caption{Execution time on Peterson\_N}
+\label{fig-peterson_wctime}
 \end{figure}
 
 \begin{figure}
 \centering
 \includegraphics[width=83mm]{fig-peterson_vss}
-\caption{Peterson_N memory usage}
-\label{fig-eratosthenes-bender_wctime}
+\caption{Memory usage on Peterson\_N}
+\label{fig-peterson_vss}
 \end{figure}
-
 
 % Present results!
 % Tables, graphs, etc.
@@ -610,16 +666,36 @@ peterson\_N  & $N=4$  & 10,000,000 & 37,434,411 \\
 %          for each set
 %       memory over iterations
 %          for each set
-%
 
 
 \section{Discussion}
 % Explain results, draw conclusions.
+% - relate to insert/test ratio
+% - relate to hardware (not many levels of hierarchy)
 
 \section{Conclusion}
-% Repeat findings.
+The experimental results clearly show that in terms of both memory usage and execution time,
+the cache-oblivious data structure proposed by Bender, Duan, Iacono and Wu is outperformed
+by traditional data structures in our test scenario.
+The advantage of more cache-friendly behaviour does not appear to be large enough to
+compensate for the increased complexity of the data structure, which results in higher
+memory requirements and increased computational overhead.
+If the data structure does have asymptotic performance benefits, then realistic work loads
+on current hardware systems are not enough to reveal this.
 
-\include{fig-queuesize}
+Of course, this does not prove definitely that cache-oblivious data structures
+are entirely without merit. It should be noted that the experiments performed
+for this research are limited in scope: only a single cache-oblivious data
+structure has been examined, in a single test scenario, on a single hardware
+and software platform. It is possible that in a different setting,
+cache-oblivious data structure do compare favorably to their traditional
+counterparts.
+
+We hope that future research will focus not only on the theoretical performance
+of newly developed algorithms and data structure, but also on the performance
+in practice. Theoretical results are invalueble, but to be of greatest
+significance newly developed data structures and algorithms should have
+demonstrable practical merit as well.
 
 \bibliographystyle{plain}
 \bibliography{paper}

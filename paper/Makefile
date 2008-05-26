@@ -1,4 +1,4 @@
-PLOTS=fig-queuesize.eps \
+PLOTS=fig-queuesize.eps fig-transitions.eps \
       fig-eratosthenes_vss.eps fig-eratosthenes_wctime.eps \
       fig-eratosthenes-bender_vss.eps fig-eratosthenes-bender_wctime.eps \
       fig-eratosthenes-hash_vss.eps fig-eratosthenes-hash_wctime.eps \
