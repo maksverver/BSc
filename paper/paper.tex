@@ -1,5 +1,3 @@
-% TODO: ensure all references in paper.bib are cited in the paper!
-% TODO: format checklist (see e-mail)
 \documentclass{acm_proc_article-sp}
 
 \usepackage{pslatex}
@@ -49,8 +47,6 @@ of cache-oblivious data structure in practice.
 \end{abstract}
 
 \keywords{cache efficiency, locality of reference, algorithms}
-
-% TODO: more meaningful section titles?
 
 \section{Introduction}
 A fundamental part of theoretical computer science is the study of algorithms (formal descriptions of how computations may be performed) and data structures (descriptions of how information is organized and stored in computers). Traditionally, algorithms have been evaluated in a simplified model of computation. In this model it is assumed that a computer executes an algorithm in discrete steps. At each step it performs one elementary operation (e.g. comparing two numbers, adding one to another, storing a value in memory, et cetera). Each elementary operation is performed within a constant time. In this model, both storing and retrieving data values in memory is considered to be an elementary operation.
@@ -110,27 +106,6 @@ A different approach to generalizing the external memory model was taken by Prok
 Algorithms that perform optimally in this model are called ``cache-oblivious'' and they distinguish themselves from cache-aware algorithms in that they cannot rely on knowledge of the block size or other specific properties of the cache configuration. The key advantage of this class of algorithms is that, even though they are defined in a two-level memory model, they are implicitly tuned to all levels in the memory hierarchy at once. It has been conjectured that these algorithms may therefore perform better than algorithms that are tuned to a specific level in the hierarchy only.
 
 Demaine gives an introduction into the cache-oblivious memory model and an overview of a selection of cache-oblivious data structures and algorithms \cite{demaine2002coa}. He also motivates the simplifications made in the cache-oblivious memory model, such as the assumption of full cache associativity and an optimal replacement policy.
-
-% Copy and shorten introduction from proposal
-% -> Motivate research into cache-efficient algorithms
-% -> Move "classification" subsection describing three models to front
-% -> Describe each of the three models
-% -> Introduce three data structures:
-%     - note that hash tables have poor locality of reference
-%     - note that btrees have good locality of reference but require pagesize
-% -> Finally, present goal of the research (incorporate "Research Questions" in
-% proposal)
-
-% Marielle suggested:
-%  - give the "standard" memory model an explicit name
-%    (isn't "cache-unaware" enough?)
-%  - move examples of cache oblivious data structures to front
-%  - mention examples of cache unaware and cache aware algorithms
-%    (at least Btree, tries and hash tables are mentioned)
-
-% Note explicitly that cache-oblivious algorithms are relatively complex
-% resulting in higher constant consts, so that the main question is wether
-% the improved locality of reference compensates for the overhead incurred.
 
 \section{Contributions}
 Several cache-oblivious data structures and algorithms have been proposed. Complexity analysis shows that the proposed solutions are asymptotically optimal. However, in software engineering practice we are not only interested in computational complexity, but also in the practical performance of data structures and algorithms. Indeed, many algorithms that have suboptimal computational complexity are actually widely used because they perform well in practice (for example, sorting algorithms like Quicksort and Shell sort) and the converse is true as well: some algorithms, although theoretically sound, are unsuitable for practical use because of greater memory requirements, longer execution time, or difficulty of implementation (for example: linear-time construction of suffix arrays is possible, but in practice slower alternatives are often preferred that are easier to implement and require less memory).
@@ -318,14 +293,23 @@ store a fixed-size pointer and not a variable-size value) and maintains
 relatively good performance when the number of values stored exceeds the size
 of the index array \cite{sedgewick1998ac}.
 
-% TODO: picture?
+\begin{figure}
+\centering
+\includegraphics[width=83mm]{hash-table}
+\caption{A depiction of a separate-chaining hash table}
+\label{fig-hash-table}
+\end{figure}
 
 Our hash table implementation uses a fixed size index which must be specified
 when creating the hash table, as this simplifies the implementation
 considerably. The index is stored at the front of the file, after which values
 are simply appended in the order in which they are added. Note that we do not
 support removing elements from the hash table, which means we do not have to
-deal with holes that would otherwise occur in the stored file. For our
+deal with holes that would otherwise occur in the stored file.
+Figure \ref{hash-table} shows a hash table (with an index size of four,
+storing three values) and the way it is stored in consecutive memory.
+
+For our
 experiments the FNV-1a hash function \cite{noll2004fnv} is used (modulo the
 size of the index) to map values to slots.
 
@@ -343,20 +327,33 @@ as many values as will fit. This makes them especially suitable for purposes
 of on-disk storage where reading and writing data in a few large blocks is
 relatively cheap compared to accessing several smaller blocks.
 
-B-tree pages are ordered in a tree structure. Values in a page are stored
-in order, and pointers are added that originate between a pair of adjacent
-values, and point to a subtree containing only values that fall in between those
-values. The resulting tree is typically very shallow, which is beneficial,
-as the number of pages that need to be retrieved (worst case) is equal to
-the height of the tree.
+\begin{figure}
+\centering
+\includegraphics[width=83mm]{b-tree}
+\caption{A depiction of a B-tree}
+\label{fig-b-tree}
+\end{figure}
 
-When a new value does not fit in the page where it is to be inserted,
-the page is split into two pages; the median value from the old page is
-moved to the parent page, and two new pages (containing the values less
-than respectively greater than the median) are created. When the top-most
-page needs to be split, a new (empty) top-level page is created and the height
-of the B-tree is increased by one. As a result, all leaf nodes in a B-tree are
-at the same depth, and all pages stored are at least half full.
+B-tree pages are ordered in a tree structure. Figure \ref{fig-b-tree} depicts a
+B-tree of height two storing eight values.
+In each page the values are stored in lexicographical order, and the values
+in the first leaf page are lexicographically smaller than ``John'', the values
+in the second leaf page are between ``John'' and ``Philip'' and the values in
+the third leaf page are greater than ``Philip''. Note that since the page
+size is fixed, not all pages can be completely filled.
+
+Since every page can store many values, the resulting tree is typically very
+shallow, which is beneficial as the number of pages that need to be retrieved
+is equal to the height of the tree (worst case).
+
+To insert a value, simply find the leaf page where it belongs. If this page
+does not have enough free space to insert it, the page is split into two pages;
+the median value from the old page is moved to the parent page, and two new pages
+(containing the values less than respectively greater than the median) are
+created. When the top-most page needs to be split, a new (empty) top-level page is
+created and the height of the B-tree is increased by one. As a result, all leaf
+nodes in a B-tree are at the same depth, and all pages stored are at least half
+full, except possibly the root page.
 
 % TODO: picture and description
 
@@ -385,12 +382,14 @@ layout (similar to the one proposed by Prokop) that is used to find values
 efficiently.
 Both the tree and the array may contain special \emph{empty values}.
 A depiction of a Bender set storing four values (with a capacity for eight) is
-given in Figure \ref{fig-bender-set}.
+given in Figure \ref{fig-bender-set}, with the window population counts for
+the sparse array given on the left (density thresholds not shown) and the index tree for the same array on the right.
 
 \begin{figure}
 \centering
-\includegraphics{bender-set}
-\caption{A depiction of a Bender set}\label{fig-bender-set}
+\includegraphics[width=83mm]{bender-set}
+\caption{A depiction of a Bender set}
+\label{fig-bender-set}
 \end{figure}
 
 A Bender set is created with a capacity $C$ that is a power of two.
@@ -399,7 +398,7 @@ Initially, the array stores only empty values and is partitioned into
 On the highest level, there is a single window of size $C$. Each subsequent level
 has twice as many windows of half that size, and the lowest level has size
 $log_2 C$ (rounded up to the next power of 2).
-For each level a maximum \emoph{density} is chosen, with the lowest level having
+For each level a maximum \emph{density} is chosen, with the lowest level having
 density 1, the highest level having density $\delta$, and the density for
 the intermediary levels obtained by interpolating linearly between 1 and
 $\delta$.
@@ -558,12 +557,14 @@ Peterson\_N  & $N=4$  & 10,000,000 & 37,434,411 \\
 \end{center}
 \end{table}
 
+% TODO: add state sizes to table?
+
 In Table \ref{tab-cases} an overview is given of the parameters of the models used
 and the resulting properties of the state space search.
-Note that the number of transitions relative to the number of iterations indicates
-the percentage of insertion operations that results in a new element being added
-to the set, which ranges approximately from 4 to 2.7 non-updating queries per
-insertion.
+Note that the number of transitions relative to the number of iterations gives an
+indication of the ratio of value look-ups (insertions of values that are already
+present in the set) and actual insertions, ranging from approximately from 4 to
+2.7 look-ups per insertion.
 
 % Possible additional cases:
 % - mobile1
@@ -572,114 +573,98 @@ insertion.
 % - sort
 
 \section{Results}
+Each of the tree data structures has some configurable parameters. The hash table
+needs to be parametrized with the size of the index, the B-tree with the size of
+the pages, and the Bender set with the density parameter ($\delta$). To determine
+which parameters to use, various different parameters were first tried on the
+first (and smallest) test case. In this case, a million relatively small states
+need to be stored.
 
-TODO: describe parameters of data structures
-Explain results for B-tree (higher page size packs more data), hash table (larger index, less collisions, cache miss anyway)
+Figure \ref{fig-eratosthenes-hash_wctime} shows the execution times for the hash
+table. About a million states need to be stored and as expected, the hash table
+with an index size that is close to this number performs best. The hash table
+with a small index (100,000 slots) performs well initially, but gets slower as
+it becomes too full, at which point each slot in the hash table has to store a
+long list of values that map to that slot.
+The hash table with a large index (10,000,000 slots) is a bit slower than the hash
+table with an index size of 1,000,000, possible because of cache misses caused by
+the larger index size.
+As Figure \ref{fig-eratosthenes-hash_vss} shows, the only difference in memory
+usage by the different hash tables is in the constant size of the index.
+Despite not being the fastest in this case, we will use the hash table with an
+index size of 10,000,000 for further experiments, as other test cases require
+storing well over 1 million states and we want to use a single size that works
+well for all test cases.
 
-\begin{figure}
-\centering
-\includegraphics[width=83mm]{fig-queuesize}
-\caption{Queue size}
-\label{fig-quesize}
-\end{figure}
+Figure \ref{fig-eratosthenes-btree_wctime} and Figure
+\ref{fig-eratosthenes-btree_vss} show the execution time and memory usage
+for the B-tree with page sizes ranging from 1KB to 16KB. The execution platform
+maps memory in 4KB pages, which would suggest that using pages less than 4KB
+makes little sense. Indeed, the B-tree with 1KB pages seems to perform worst,
+but if we take the memory use into account, this is more likely due to the fact
+that fewer items fit on a single page (which means a relatively large portion of
+the page remains unused) than anyting else.
+The 4KB and 16KB pages are relatively close (both in execution time and memory
+usage); we select the 16KB page size for further experiments because state sizes
+are larger in other test cases, in which case the 4KB page size may cause similar
+problems as the 1KB page size here.
 
-\begin{figure}
-\centering
-\includegraphics[width=83mm]{fig-transitions}
-\caption{Transitions}
-\label{fig-transitions}
-\end{figure}
+Finally, in Figure \ref{fig-eratosthenes-bender_wctime} the execution times for
+the Bender set with several different density parameters are given. With a lower
+density, more space is required, but new insertions less frequently cause large windows to be rebalanced.
+Suprisingly, the execution times for the different density values are comparable.
+Figure \ref{fig-eratosthenes-bender_vss} shows that the lower density parameters do
+indeed use a lot more memory. It appears that the advantage of low density is
+negated by the overhead of constructing increasingly large data structures.
+The set with $\delta=0.125$ cannot even finish the test case in the memory
+that is available. Since execution times are similar, we select
+$\delta=0.5$ for future experiments in order to minimize memory use.
 
-\begin{figure}
-\centering
-\includegraphics[width=83mm]{fig-eratosthenes-bender_wctime}
-\caption{Bender set execution time on Eratosthenes}
-\label{fig-eratosthenes-bender_wctime}
-\end{figure}
+% TODO: test with larger density!
 
-\begin{figure}
-\centering
-\includegraphics[width=83mm]{fig-eratosthenes-bender_vss}
-\caption{Bender set memory usage on Eratosthenes}
-\label{fig-eratosthenes-bender_vss}
-\end{figure}
-
-\begin{figure}
-\centering
-\includegraphics[width=83mm]{fig-eratosthenes-hash_wctime}
-\caption{Hash table execution time on Eratosthenes}
-\label{fig-eratosthenes-hash_wctime}
-\end{figure}
-
-\begin{figure}
-\centering
-\includegraphics[width=83mm]{fig-eratosthenes-hash_vss}
-\caption{Hash table memory usage on Eratosthenes}
-\label{fig-eratosthenes-hash_vss}
-\end{figure}
-
-\begin{figure}
-\centering
-\includegraphics[width=83mm]{fig-eratosthenes-btree_wctime}
-\caption{B-tree execution time on Eratosthenes}
-\label{fig-eratosthenes-btree_wctime}
-\end{figure}
-
-\begin{figure}
-\centering
-\includegraphics[width=83mm]{fig-eratosthenes-btree_vss}
-\caption{B-tree memory usage on Eratosthenes}
-\label{fig-eratosthenes-btree_vss}
-\end{figure}
-
-\begin{figure}
-\centering
-\includegraphics[width=83mm]{fig-leader2_wctime}
-\caption{Execution times on Leader2}
-\label{fig-leader2_wctime}
-\end{figure}
-
-\begin{figure}
-\centering
-\includegraphics[width=83mm]{fig-leader2_vss}
-\caption{Memory usage on Leader2}
-\label{leader2_vss}
-\end{figure}
-
-\begin{figure}
-\centering
-\includegraphics[width=83mm]{fig-peterson_wctime}
-\caption{Execution time on Peterson\_N}
-\label{fig-peterson_wctime}
-\end{figure}
-
-\begin{figure}
-\centering
-\includegraphics[width=83mm]{fig-peterson_vss}
-\caption{Memory usage on Peterson\_N}
-\label{fig-peterson_vss}
-\end{figure}
-
-% Present results!
-% Tables, graphs, etc.
-% What to include:
-%   queue size over iterations
-%       for each program
-%
-%   insertions per query:
-%       for each program
-%
-%   per program:
-%       wctime over iterations
-%          for each set
-%       memory over iterations
-%          for each set
-
+Now that we have established the parameters to use for the other test cases.
+The execution times for the three testcases are presented in figures
+\ref{fig-eratosthenes_wctime}, \ref{fig-leader2_wctime} and
+\ref{fig-peterson_wctime}, while the corresponding memory usage is presented in
+figures \ref{fig-eratosthenes_vss}, \ref{fig-leader2_vss} and \ref{fig-peterson_vss} respectively.
 
 \section{Discussion}
-% Explain results, draw conclusions.
-% - relate to insert/test ratio
-% - relate to hardware (not many levels of hierarchy)
+The three test cases paint a very similar picture: in all cases, the hash table
+offers the best performance in terms of both execution time and memory usage,
+followed by the B-tree. In all cases, the Bender set performs worst by a large
+margin.
+
+The difference in execution time between the hash table and B-tree increases as
+the size of the states becomes larger. This is explained by the fact that the
+height of the B-tree depends on the average number of values per page; larger
+values means less values per page, and therefore a deeper tree, and as a
+result more pages to be fetched for a query. The hash table does not have such a
+limitation, as every value in the bucket must be fetched independently, regardless
+of the size of these values.
+
+When it comes to memory usage the B-tree and hash table have similar requirements;
+the B-tree has slightly larger overhead per value stored, but initially the hash
+table uses more memory because of the space allocated for the index.
+
+The performance of the Bender set does not seem to depend on the page size,
+and as a result the difference between the Bender set and the B-tree is smallest
+when the page size is largest. Unfortunately, even then it requires about three
+times as much time and a lot more memory.
+
+The test cases used all have a relatively high percentage of insertions relative
+to value look-ups. This may explain the good performance of the hash table (for
+which insertions are barely more expensive than look-ups) as well as the bad
+performance of the Bender tree (for which insertions are relatively expensive,
+especially when a window is rebalanced). Unfortunately, the insert/look-up
+ratio for our test cases varies too little to derive a meaningful conclusion
+in this regard.
+
+Finally, it should be noted that in our experiments only part of the memory
+hierarchy was used (up to the use of main memory). This still involves several
+levels of processor cache, but it is not a very deep hierarchy. With a deeper
+memory hierarchy, with greater differences in access times between the levels,
+the cache-efficient data structures (the B-tree and the Bender set) should
+perform relatively better.
 
 \section{Conclusion}
 The experimental results clearly show that in terms of both memory usage and
@@ -710,4 +695,112 @@ demonstrable practical merit as well.
 
 \bibliographystyle{plain}
 \bibliography{paper}
+
+
+%\begin{figure}
+%\centering
+%\includegraphics[width=83mm]{fig-queuesize}
+%\caption{Queue size}
+%\label{fig-quesize}
+%\end{figure}
+
+%\begin{figure}
+%\centering
+%\includegraphics[width=83mm]{fig-transitions}
+%\caption{Transitions}
+%\label{fig-transitions}
+%\end{figure}
+
+\begin{figure}[p]
+\centering
+\includegraphics[width=83mm]{fig-eratosthenes-hash_wctime}
+\caption{Execution time of hash table on Eratosthenes}
+\label{fig-eratosthenes-hash_wctime}
+\end{figure}
+
+\begin{figure}[p]
+\centering
+\includegraphics[width=83mm]{fig-eratosthenes-btree_wctime}
+\caption{Execution time of B-tree on Eratosthenes}
+\label{fig-eratosthenes-btree_wctime}
+\end{figure}
+
+\begin{figure}[p]
+\centering
+\includegraphics[width=83mm]{fig-eratosthenes-bender_wctime}
+\caption{Execution time of Bender set on Eratosthenes}
+\label{fig-eratosthenes-bender_wctime}
+\end{figure}
+
+\begin{figure}[p]
+\centering
+\includegraphics[width=83mm]{fig-eratosthenes-hash_vss}
+\caption{Memory usage of hash table on Eratosthenes}
+\label{fig-eratosthenes-hash_vss}
+\end{figure}
+
+\begin{figure}[p]
+\centering
+\includegraphics[width=83mm]{fig-eratosthenes-btree_vss}
+\caption{Memory usage of B-tree on Eratosthenes}
+\label{fig-eratosthenes-btree_vss}
+\end{figure}
+
+\begin{figure}[p]
+\centering
+\includegraphics[width=83mm]{fig-eratosthenes-bender_vss}
+\caption{Memory usage of Bender set on Eratosthenes}
+\label{fig-eratosthenes-bender_vss}
+\end{figure}
+
+\begin{figure}[p]
+\centering
+\includegraphics[width=83mm]{fig-eratosthenes_wctime}
+\caption{Execution time on Eratosthenes}
+\label{fig-eratosthenes_wctime}
+\end{figure}
+
+\begin{figure}[p]
+\centering
+\includegraphics[width=83mm]{fig-leader2_wctime}
+\caption{Execution time on Leader2}
+\label{fig-leader2_wctime}
+\end{figure}
+
+\begin{figure}[p]
+\centering
+\includegraphics[width=83mm]{fig-peterson_wctime}
+\caption{Execution time on Peterson\_N}
+\label{fig-peterson_wctime}
+\end{figure}
+
+\begin{figure}[p]
+\centering
+\includegraphics[width=83mm]{fig-eratosthenes_vss}
+\caption{Memory usage on Eratosthenes}
+\label{fig-eratosthenes_vss}
+\end{figure}
+
+\begin{figure}[p]
+\centering
+\includegraphics[width=83mm]{fig-leader2_vss}
+\caption{Memory usage on Leader2}
+\label{fig-leader2_vss}
+\end{figure}
+
+\begin{figure}[p]
+\centering
+\includegraphics[width=83mm]{fig-peterson_vss}
+\caption{Memory usage on Peterson\_N}
+\label{fig-peterson_vss}
+\end{figure}
+
+% What else to include:
+%   queue size over iterations
+%       for each program
+%
+%   insertions per query:
+%       for each program
+%
+
 \end{document}
