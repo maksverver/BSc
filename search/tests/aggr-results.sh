@@ -24,10 +24,10 @@ aggregate eratosthenes wctime base 01 02 03 04 05 06 07 08 09
 
 aggregate leader2      qsz    base
 aggregate leader2      trans  base
-aggregate leader2      vss    base 01 02 03
-aggregate leader2      wctime base 01 02 03
+aggregate leader2      vss    base 01 02 03 04
+aggregate leader2      wctime base 01 02 03 04
 
 aggregate peterson     qsz    base
 aggregate peterson     trans  base
-aggregate peterson     vss    base 01 02 03
-aggregate peterson     wctime base 01 02 03
+aggregate peterson     vss    base 01 02 03 04
+aggregate peterson     wctime base 01 02 03 04

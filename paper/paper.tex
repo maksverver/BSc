@@ -37,18 +37,18 @@ Mathematics and Computer Science}
 \maketitle
 
 \begin{abstract}
-In modern computer hardware architecture, memory is organized in a hierarchy
+In modern computer hardware architecture memory is organized in a hierarchy
 consisting of several types of memory with different memory sizes, block
 transfer sizes and access times. To reflect this situation more accurately
-than tradition models, the cache-oblivious model has been proposed, and several
-algorithms and data structures have been proposed that perform optimally in
-this model.
-This paper presents the results of an empirical evaluation of various data
+than traditional models, the cache-oblivious model has been proposed, and
+several algorithms and data structures have been developed that perform
+optimally in this model.
+This paper presents the results of an empirical evaluation of several data
 structures in a realistic scenario, and gives insight into the applicability
 of cache-oblivious data structure in practice.
 \end{abstract}
 
-\keywords{cache efficiency, locality of reference, algorithms, empirical evaluation}
+\keywords{cache efficiency, locality of reference, algorithms}
 
 % TODO: more meaningful section titles?
 
@@ -59,7 +59,7 @@ This model is close enough to the way computers work to be extremely useful in t
 
 One of the reasons this assumption fails is that modern operating systems employ virtual memory management, which allows (slower) disk-based storage to be dynamically substituted for (fast\-er) main memory when the latter is in short supply. Another reason is that as processor speeds have increased greatly, the time required to transfer data between processor and main memory has become a bottleneck for many types of computations. Hardware architects have added faster (but small) cache memory at various points in the computer architecture to reduce this problem, but this increases the differences in access time between different types of memory.
 
-As a result, a modern computer system lacks a central memory storage with uniform performance characteristics. Instead, it employs a hierarchy of memory storage types. Figure \ref{fig-memhier} gives a typical example of such a hierarchy. The processor can directly manipulate data contained in its registers only. To access data in a lower level in the memory hierarchy, the data must be transfered upward through the memory hierarchy. Memory is typically transfered in blocks of data of a fixed size (although bulk transfers involving multiple blocks of data at once are also supported at the memory and disk level).
+As a result, a modern computer system lacks a central memory storage with uniform performance characteristics. Instead, it employs a hierarchy of memory storage types. Figure \ref{fig-memhier} gives a typical example of such a hierarchy. The processor can directly manipulate data contained in its registers only. To access data in a lower level in the memory hierarchy, the data must be transferred upward through the memory hierarchy. Memory is typically transferred in blocks of data of a fixed size (although bulk transfers involving multiple blocks of data at once are also supported at the memory and disk level).
 
 \begin{figure}
 \centering
@@ -90,24 +90,24 @@ Disk       & ~300 GB    & 4 KB     & 5,000-10,000 cycles \\
 To conclude: the memory model used in real computer systems is quite a bit more complex than the uniform memory model assumed. Given this reality, the performance of many existing algorithms and data structures can be improved by taking the existence of a memory hierarchy into account. This has prompted research into new memory models that are more realistic. We will consider three classes of data structures and algorithms, depending on the assumptions that are made about the environment in their definition:
 \begin{list}{}{}
 \item \textbf{Cache-unaware} data structures and algorithms are designed with the traditional uniform memory model in mind, without considering the existance of a memory hierarchy, and may therefore not perform optimally in practice.
-\item \textbf{Cache-aware} (or \textbf{cache-conscious}) data structures and algorithms are designed to perform optimally in the external memory model (,described below) but require parametrization with some or all properties of the cache layout (such as block size or cache memory size).
-\item \textbf{Cache-oblivious} data structures and algorithms are designed to perform optimally in the cache-oblivious model (which will also be described below) which does not allow parametrization with properties of the cache layout.
+\item \textbf{Cache-aware} (or \textbf{cache-conscious}) data structures and algorithms are designed to perform optimally in the external memory model (described below) but require parametrization with some or all properties of the cache layout (such as block size or cache memory size).
+\item \textbf{Cache-oblivious} data structures and algorithms are designed to perform optimally in the cache-oblivious model (explained below) which does not allow para\-metri\-zation with properties of the cache layout.
 \end{list}
 
-Plenty of cache-unaware and cache-aware data structures have been developed and these are also widely used in practice. Altough some research has been done for cache-oblivious data structures, they are seldom used in practice. The main contribution of this paper is to give some insight in the practical merit of cache-oblivious data structures.
+Plenty of cache-unaware and cache-aware data structures have been developed and these are also widely used in practice. Altough some research has been done on cache-oblivious data structures, they are seldom used in practice. The main contribution of this paper is to give some insight in the practical merit of cache-oblivious data structures.
 
 \subsection{External Memory Model}
-One of the earliest models to take the differences in memory access cost into account is the external memory model, described by Aggarwal and Vitter \cite{aggarwal1988ioc}. They make a distinction between internal memory (which is limited in size) and external memory (which is virtually unlimited). The external memory is subdivided into blocks of a fixed size and only entire blocks of data can be transferred between the two memories; additionally, consecutive blocks can be transfered at reduced cost (so-called bulk transfer). Although Aggarwal and Vitter focus on magnetic disk as a storage medium for external memory, the model can be generalized to apply to every pair of adjacent levels in the memory hierarchy. In that case, the possibility of bulk transfer may have to be dropped.
+One of the earliest models to take the differences in memory access cost into account is the external memory model, described by Aggarwal and Vitter \cite{aggarwal1988ioc}. They make a distinction between internal memory (which is limited in size) and external memory (which is virtually unlimited). The external memory is subdivided into blocks of a fixed size and only entire blocks of data can be transferred between the two memories; additionally, consecutive blocks can be transferred at reduced cost (so-called bulk transfer). Although Aggarwal and Vitter focus on magnetic disk as a storage medium for external memory, the model can be generalized to apply to every pair of adjacent levels in the memory hierarchy. In that case, the possibility of bulk transfer may have to be dropped.
 
 We will call algorithms that are designed to minimize the number of transfers in a two-level memory hierarchy ``cache-aware'' (as opposed to traditional ``cache-unaware'' algorithms) or ``cache-conscious''. These algorithms typically rely on knowledge of the block size to achieve optimal performance.
 
 \subsection{Hierarchical Memory Model}
-The external memory model has the limitation that it only describes two levels of storage, while we have seen that in practice the memory hierarchy contains more than just two levels. Even though the external memory model can be used to describe any pair of adjacent levels, a particular algorithm can only be tuned to one. Aggarwal, Alpern, Chandra and Snir \cite{aggarwal1987mhm} addressed this shortcoming by introducing a hierarchical memory model in which the cost of accessing a value at specific memory address is described by a non-decreasing function of this address, which means that accessing data at higher addresses can be slower than at lower addresses. This more closely resembles a real memory hierarchy, but assumes that the application has full control over which data is placed where, which is usually not the case in practice, making their model of little use in the design and evaluation of practical algorithms.
+The external memory model has the limitation that it only describes two levels of storage, while we have seen that in practice the memory hierarchy contains more than just two levels. Even though the external memory model can be used to describe any pair of adjacent levels, a particular algorithm can only be tuned to one. Aggarwal, Alpern, Chandra and Snir \cite{aggarwal1987mhm} addressed this shortcoming by introducing a hierarchical memory model in which the cost of accessing a value at specific memory addresses is described by a non-decreasing function of these addresses, which means that accessing data at higher addresses can be slower than at lower addresses. This more closely resembles a real memory hierarchy, but assumes that the application has full control over which data is placed where and that data at all locations can be accessed directly, which is usually not the case in practice. As a result, the applicability of their model to the design and evaluation of \emph{practical} algorithms is limited.
 
 \subsection{Cache-Oblivious Memory Model}
 A different approach to generalizing the external memory model was taken by Prokop \cite{prokop1999coa} who proposed the cache-oblivious model, which consists of an infinitely large external memory and an internal memory of size M which operates as a cache for the external memory. Data is transferred between the two in aligned data blocks of size B. In contrast with the hierarchical memory model, the application does not have explicit control over the transfering of blocks between the two memories. Instead, it is assumed that an optimal cache manager exists which minimizes the number of block transfers over the execution the program. Additionally (and in contrast with the external memory model) the values of parameters like M and B are not known to the application, so they cannot be used explicitly when defining algorithms and datastructures. Of course, analysis in terms of memory transfers does involve these parameters, so the number of memory transfers performed is still a function of M and B (and other parameters relevant to the problem).
 
-Algorithms that perform optimally in this model are called ``cache-oblivious'' and they distinguish themselves from cache-aware algorithms in that they cannot rely on knowledge of the block size or other specific properties of the cache configuration. The key advantage of this class of algorithms is that they are implicitly tuned to all levels in the memory hierarchy at once. It has been conjectured that these algorithms may therefore perform better than algorithms that are tuned to a specific level in the hierarchy only.
+Algorithms that perform optimally in this model are called ``cache-oblivious'' and they distinguish themselves from cache-aware algorithms in that they cannot rely on knowledge of the block size or other specific properties of the cache configuration. The key advantage of this class of algorithms is that, even though they are defined in a two-level memory model, they are implicitly tuned to all levels in the memory hierarchy at once. It has been conjectured that these algorithms may therefore perform better than algorithms that are tuned to a specific level in the hierarchy only.
 
 Demaine gives an introduction into the cache-oblivious memory model and an overview of a selection of cache-oblivious data structures and algorithms \cite{demaine2002coa}. He also motivates the simplifications made in the cache-oblivious memory model, such as the assumption of full cache associativity and an optimal replacement policy.
 
@@ -133,7 +133,7 @@ Demaine gives an introduction into the cache-oblivious memory model and an overv
 % the improved locality of reference compensates for the overhead incurred.
 
 \section{Contributions}
-Several cache-oblivious data structures and algorithms have been proposed. Complexity analysis shows that the proposed solutions are asymptotically optimal. However, in software engineering practice we are not only interested in computational complexity, but also in the practical performance of data structures and algorithms. Indeed, many algorithms that have suboptimal computational complexity are actually widely used because they perform well in practice (for example, sorting algorithms like Quicksort and Shell sort) and the converse is true as well: some algorithms, although theoretically sound, are unsuitable for practical use because of greater memory requirements, longer execution time, or difficulty of implementation (for example: linear-time construction of suffix arrays is possible, but in practice slower alternatives are often prefered that are easier to implement and require less memory).
+Several cache-oblivious data structures and algorithms have been proposed. Complexity analysis shows that the proposed solutions are asymptotically optimal. However, in software engineering practice we are not only interested in computational complexity, but also in the practical performance of data structures and algorithms. Indeed, many algorithms that have suboptimal computational complexity are actually widely used because they perform well in practice (for example, sorting algorithms like Quicksort and Shell sort) and the converse is true as well: some algorithms, although theoretically sound, are unsuitable for practical use because of greater memory requirements, longer execution time, or difficulty of implementation (for example: linear-time construction of suffix arrays is possible, but in practice slower alternatives are often preferred that are easier to implement and require less memory).
 
 This raises the question whether cache-oblivious data structures are actually preferable to traditional data structures in practice. To determine if cache-oblivious data structures have practical merit, empirical performance data is required, which is scarce as existing research has focused mainly on theoretical analysis. This paper addresses the question by reporting on the performance of newly implemented (but previously described) cache-oblivious data structures and their traditional counterparts (both cache-aware and cache-unaware data structures).
 
@@ -144,9 +144,9 @@ Bender, Demaine and Farach-Colton designed a cache-oblivious data structure that
 
 Later, Bender, Duan, Iacono and Wu simplified the data structure \cite{bender2004lpc} while preserving the supported operations and complexity bounds and adding support for finger searches. The latter data structure consists of a sparse array (stored in a linear amount of memory) with a static tree in van Emde Boas layout (named for similarity to a different data structure proposed by van Emde Boas et al. \cite{vanemdeboas1976dai}).
 
-Several data structures were proposed by Rahman, Cole and Raman \cite{rahman2001opd} amongst them a cache-oblivious exponential search tree with a similar structure as the static search tree proposed by Prokop. In their experimental results the cache-oblivious tree performs worse than the alternatives. Nevertheless, they conclude that \textit{"cache-obli\-vious data structures may have significant practical importance"}.
+Several data structures were proposed by Rahman, Cole and Raman \cite{rahman2001opd} amongst them a cache-oblivious exponential search tree with a similar structure as the static search tree proposed by Prokop. In their experimental results the cache-oblivious tree performs worse than the (non-oblivious) alternatives. Nevertheless, they conclude that \textit{``cache-obli\-vious data structures may have significant practical importance''}.
 
-Askitis and Zobel \cite{askitis2005ccc} propose a way to make chained hash tables more cache-efficient, by storing bucket contents in contiguous memory instead of using a linked list. This means buckets have to be resized on insertions and deletions, but their experiments show a performance gain over traditional methods (especially when the hash table is heavily loaded).
+Askitis and Zobel \cite{askitis2005ccc} propose a way to optimize seperate-chaining hash tables for cache-efficiency by storing the linked lists that contain the contents for a bucket in contiguous memory. Their experiments show a performance gain over traditional methods, especially when the hash table is heavily loaded.
 
 Vitter presents a theoretical survey of algorithms evaluated in a parallel disk model \cite{vitter2001ema}, which is a refinement of the external memory model described by Aggarwal and Vitter, but only allows parallel transfer of multiple blocks from different disks, which is more realistic. Unfortunately, his survey lacks empirical results.
 
@@ -158,8 +158,10 @@ In order to gather empirical data, the research approach must be made more concr
 Furthermore, we will need to define what practical performance is. We will measure two properties: primarily, the total running time of our test application, and secondarily the memory used. The rationale for selecting these metrics is that if the data structures perform identical functions and plenty of memory is available, the only observable difference in running a program using different data structures will be the run time. Memory use is of secondary interest because in practice memory may be limited, which would preclude the use of certain data structures that require a lot of memory to function.
 
 \subsection{State Space Search}
-As the test application, that of a state space search has been chosen. This is a
-suitable scenario for two reasons. First, it is commonly used as a practical
+The test application that we use to gather performance data is an implementation
+of a state space search algorithm.
+This is a suitable scenario for two reasons.
+First, it is commonly used as a practical
 component of formal methods for software verification, and therefore good
 algorithms are of great practical significance. Second, as we will explain
 below, the performance of state space search algorithms depends for a large
@@ -167,19 +169,18 @@ part on the performance of the data structures that are used to implement
 them; therefore, research into efficient data structures is of particular
 interest to this application.
 
-State space search is used to verify the correctness of software programs. For
-this purpose, programs are first modeled using a formal language, that is also
-used to specify properties of the program that should hold during its
+State space search can be used to verify the correctness of software programs. For this purpose, programs are first modeled using a formal language, that is also used to specify properties of the program that should hold during its
 execution. An executing program can be in a (possibly infinite) amount of states,
 one of which is usually designated the \emph{initial state}. If a transition
 from one state to another is possible (according to the rules of the formal
 language used) the latter state is said to be a \emph{successor state} of the
 former.
 Generating the successors of a particular state is also called
-\emph{expanding} the state. Of course, the model must include some form of
-non-determinism to allow more than one successor to exist for a single state.
+\emph{expanding} the state. Of course, the the execution model
+must include some form of non-determinism to allow more than one successor to
+exist for a single state.
 In practice, this non-determinism usually comes from processes that execute in
-parallel, where the precise interleaving of the (observed) execution of
+parallel, where the precise interleaving of the execution of
 instructions in these processes is non-deterministic, unless synchronization
 primitives (such as channels, semaphores, atomic execution blocks, et cetera)
 are used to enforce a particular ordering.
@@ -221,10 +222,8 @@ Depending on how states are inserted and extracted from the queue, the search
 may be breadth-first (meaning that all states that are reachable in $N$ steps
 from the initial state are expanded before any states that require more than
 $N$ steps) or depth-first (meaning that states that are generated most recently
-by the successor function are expanded first). In the first case, the queue
-operates by a first-in first-out principle, while in the second case the queue
-works in a last-in first-out (stack) principle. In general, breadth-first
-search requires a much larger queue capacity than depth-first search.
+by the successor function are expanded first). We will use breadth-first
+search, which means the queue operates by a first-in first-out principle.
 
 From the pseudo-code it is clear that the state space search algorithm does not
 accomplish much by itself; instead, the real work is done by the successor
@@ -238,21 +237,20 @@ therefore, the bottleneck of the algorithm is the set data structure.
 For our experimental framework, we need a collection of formal models that are
 representative of those typically used for formal verification, and a way to
 execute them. For the first part, we have looked at Spin \cite{spin}, a widely
-used model checking tool. Spin uses a custom modeling language, called
-PROMELA, to specify models and comes with a collection of example models that
-are suitable for our experiment.
+used model checking tool. Spin uses a custom modeling language (called
+PROMELA) to specify models and is distributed with a collection of example
+models that are suitable for our experiments.
 
-For the execution of these models we will use NIPS VM \cite{weber2007evm}, a
+For the execution of these models we will use the NIPS VM \cite{weber2007evm}, a
 high-performance virtual machine for state space generation that is easily
 embeddable in our framework. Although the NIPS VM only executes bytecode in a
 custom format, a PROMELA compiler is also available to generate the required
-bytecode from the Spin models.\cite{nipsvm} The NIPS VM is prefered to over the
+bytecode from the Spin models.\cite{nipsvm} The NIPS VM is preferred to the
 Spin tools because it was designed to be embedded in other programs and as
 such is more easily integrated in our framework.
 
 The NIPS VM represents program state as a binary string; the size of the state
-depends on the number of active processes in the program, and is typically in
-the order of a few hundred bytes.
+depends amongst other on the number of active processes in the program (which may change over the execution of the program). A typical state size is in the order of a few hundred bytes.
 
 \subsection{Data Structures}
 In the introduction we identified three classes of data structures.
@@ -261,7 +259,7 @@ for each class:
 \begin{itemize}
 \item \textbf{Cache-unaware}: hash tables. Hash tables are widely used in practice and noted for good performance if the data set fits in main memory, although they have also been used as an index structure for data stored on disk.
 \item \textbf{Cache-aware}: B-trees. The B-tree is the standard choice for storing ordered data on disk, and depends on a page size being selected that corresponds with the size of data blocks that can be efficiently transferred.
-\item \textbf{Cache-oblivious}: the B-tree-like data structure proposed by Bender, Duan, Iacono and Wu. Since it provides functionality comparable to that of a normal B-tree, this seems like a fair candidate for a comparison. For brevity, this data structure will be refered to as a \emph{Bender set}.
+\item \textbf{Cache-oblivious}: the data structure proposed by Bender, Duan, Iacono and Wu. Since it provides functionality comparable to that of a B-tree, this seems like a fair candidate for a comparison. For brevity, this data structure will be referred to as a \emph{Bender set}.
 \end{itemize}
 
 Cache-oblivious data structures are not yet commonly used in practice and to
@@ -270,16 +268,14 @@ The Bender set will therefore have to be implemented from scratch.
 
 In contrast, both hash tables and B-trees are widely used and there are several
 high quality implementations available as software libraries. It is, however,
-undesirable to use existing libraries for a fair comparison, for two reasons.
-
-First, many existing implementations support additional operations (such as removal of elements, locking and synchronization, atomic transactions, et cetera) which are not used in our experiments, but which may harm the performance of these implementations. Second, many established libraries have been thoroughly optimized while our newly implemented data structures have not. This may give the existing libraries an unfair advantage.
+undesirable to use existing libraries for a fair comparison, for two reasons. First, many existing implementations support additional operations (such as removal of elements, locking and synchronization, atomic transactions, et cetera) which are not used in our experiments, but which may harm the performance of these implementations. Second, many established libraries have been thoroughly optimized while our newly implemented data structures have not. This may give the existing libraries an unfair advantage.
 
 In an attempt to reduce the bias caused by differences in functionality and
 quality between existing and newly developed libraries, all data structures
 used in the performance evaluation have been implemented from scratch.
 
 \subsubsection{Set Operations}
-Dynamic set data structures may support various operations, such as adding and removing elements, testing if a value is an element of the set, finding elements nearby, succeeding or preceding a given value, counting elements in a range, et cetera. However, our state space search algorithm only needs two operations: insertion of new elements (in a set that is initially empty) and testing for the existence of elements. In fact, these two operations can be combined into a single operation. We call this operation \verb#insert(S,x)#. If an element $x$ does not exist in $S$, then $insert(S,x)$ inserts it and returns $0$. If $x$ is already an element of $S$, $insert(S,x)$ returns $1$. The inner loop of our state space algorithm can now be written as follows:
+Dynamic set data structures may support various operations, such as adding and removing elements, testing if a value is an element of the set, finding elements nearby, succeeding or preceding a given value, counting elements in a range, et cetera. However, our state space search algorithm only needs two operations: insertion of new elements (in a set that is initially empty) and testing for the existence of elements. In fact, these two operations can be combined into a single operation. We call this operation \verb#insert(S,x)#. If an element $x$ does not exist in $S$, then \verb#insert(S,x)# inserts it and returns $0$. If $x$ is already an element of $S$, \verb#insert(S,x)# returns $1$ and no modifications are made. The inner loop of our state space algorithm can then be rewritten as follows:
 \begin{verbatim}
     for (State s : successors(state)) {
         if (generated.insert(s) == 0) {
@@ -291,18 +287,20 @@ Dynamic set data structures may support various operations, such as adding and r
 We now have a single operation that must be implemented by all set data structures. Recall that the values to be stored are virtual machine state descriptions, which are variable-length binary strings. All data structures must therefore support storing strings of varying length efficiently.
 
 \subsubsection{Common Implementation Details}
-For memory management, the data structures make use of memory mapped files. The
-B-tree and hash table implementations use a single file for all data storage;
+For memory management, the data structures make use of memory mapped files.
+The B-tree and hash table implementations use a single file for all data storage;
 the Bender tree uses several files (as discussed below) and some main memory.
 
 The use of memory mapped files means that the operating system is in charge of
-when and which pages are transfered between main memory and disk storage; the
+when and which pages are transferred between main memory and disk storage; the
 application assumes no control over this policy. This is in accordance with the
 cache-oblivious model, that assumes no control over the cache is possible.
+Additionally, memory mapped files bypass the C library's allocation functions
+and give the implementor complete control over how data is ordered in (virtual)
+memory.
 
 \subsubsection{Hash Table Implementation}
-Hash tables are widely used as a fast (O($1$)) data structure especially when
-used for in-memory storage. In its simplest form, a hash table consists of an
+In its simplest form, a hash table consists of an
 index array (the \emph{index}) with a fixed number of slots. A \emph{hash
 function} is used to map key values onto slot numbers. If the slot for a value
 is empty, it may be inserted there. Queries for the existance of an element in
@@ -337,36 +335,38 @@ The B-tree data structure was first proposed by Bayer and McCreight
 textbooks. Our implementation is based on the description by Kifer, Bernstein
 and Lewis \cite{kifer2006dsa}.
 
-B-trees are similar to other search tree data structures. A defining property
-is that they organize data in pages of a fixed size, each containing several
-values, which makes them especially useful for purposes of on-disk storage
-where reading and writing data in a few large blocks is relatively cheap
-compared to accessing several smaller blocks.
+B-trees are similar to other search tree data structures in the sense that
+they store ordered values hierarchically in such a way that each subtree store
+values that are close together.
+A key property of B-trees is that they do not fix the number of children per node, but instead organize data in pages of a fixed size, each containing
+as many values as will fit. This makes them especially suitable for purposes
+of on-disk storage where reading and writing data in a few large blocks is
+relatively cheap compared to accessing several smaller blocks.
 
-B-trees work by keeping as much values as possible, in order, in a single
-page. Pages are ordered in a tree structure, where interior nodes store
-pointers to child nodes. Pointers originate at a pair of adjacent values,
-and point to a subtree containing only values that fall in between those
-values.
+B-tree pages are ordered in a tree structure. Values in a page are stored
+in order, and pointers are added that originate between a pair of adjacent
+values, and point to a subtree containing only values that fall in between those
+values. The resulting tree is typically very shallow, which is benefical,
+as the number of pages that need to be retrieved (worst case) is equal to
+the height of the tree.
 
 When a new value does not fit in the page where it is to be inserted,
 the page is split into two pages; the median value from the old page is
 moved to the parent page, and two new pages (containing the values less
 than respectively greater than the median) are created. When the top-most
 page needs to be split, a new (empty) top-level page is created and the height
-of the B-tree is increased by one.
-
-B-trees are well suited to storing variable length values, as pages can
-store many values as long as the combined size of the values and pointers
-does not exceed the pagesize.
+of the B-tree is increased by one. As a result, all leaf nodes in a B-tree are
+at the same depth, and all pages stored are at least half full.
 
 % TODO: picture and description
 
-Note that there is no obvious way to store values that are larger than the
-size of a single page. Production-quality implementations handle this case
-separately, but our implementation does not support this scenario and
-requires stored values to be smaller than the pagesize. Additionally,
-deletion of items has not been implemented.
+B-trees can easily support the insertion of variable-length values, as long
+as individual values fit in the size of a single page. However, there is no
+obvious way to store values that are larger than the size of a single page.
+Production-quality implementations handle this case separately. Our our
+implementation does not support this requires stored values to
+be smaller than the pagesize. Additionally, deletion of items has not been
+implemented.
 
 \subsubsection{Bender Set Implementation}
 The first implementation challenge for the Bender set is that the description
@@ -377,12 +377,15 @@ different value sizes which are powers of two. When a value is to be inserted,
 its size is rounded up to a power of two and it is inserted in the
 corresponding set instance. This ensures that the amount of spaces wasted
 remains below 50\% while still allowing values of various sizes to be inserted.
+In the following description, we will assume that values are of a fixed size.
 
 The implementation of the Bender set consists of two parts: a sparse array
-storing the values in-order, and a binary tree stored in van Emde Boas
-layout (similar to the one proposed by Prokop). Both the tree and the array
-may contain special \emph{empty values}. A depiction of a Bender set storing
-four values (with a capacity for eight) is given in Figure \ref{fig-bender-set}.
+storing the values in order, and a binary tree stored in van Emde Boas
+layout (similar to the one proposed by Prokop) that is used to find values
+efficiently.
+Both the tree and the array may contain special \emph{empty values}.
+A depiction of a Bender set storing four values (with a capacity for eight) is
+given in Figure \ref{fig-bender-set}.
 
 \begin{figure}
 \centering
@@ -394,48 +397,53 @@ A Bender set is created with a capacity $C$ that is a power of two.
 Initially, the array stores only empty values and is partitioned into
 \emph{windows} on several \emph{levels}.
 On the highest level, there is a single window of size $C$. Each subsequent level
-has twice as many windows of half that size, and the lowest level has size $log_2 C$
-(rounded up to the next power of 2).
-For each level, a maximum density is given, with the lowest level having density 1,
-the highest level having density $\delta$ (these densities are interpolated linearly
-to obtain the density for the intermediary levels).
+has twice as many windows of half that size, and the lowest level has size
+$log_2 C$ (rounded up to the next power of 2).
+For each level a maximum \emoph{density} is chosen, with the lowest level having
+density 1, the highest level having density $\delta$, and the density for
+the intermediary levels obtained by interpolating linearly between 1 and
+$\delta$.
 
-The top-level density must be a number between $\frac{1}{2}$ and $1$; the optimal value
-depends on practical circumstances such as available memory and the relative cost of
-rebuilding the data structures. Whenever the number of elements stored in
-a window (the window's \emph{population count}) exceeds the size of the window
-multiplied by its maximum density, the window is said to be \emph{overflowing}.
+The top-level density must be a number between $0$ and $1$; the optimal value
+depends on practical circumstances such as available memory and the relative
+cost of rebuilding the data structures.
+Whenever the fraction of non-empty values stored in a window (the window's
+\emph{population count} divided by the size of the window) exceeds its maximum
+density, the window is said to be \emph{overflowing}.
 Overflows are resolved when a higher-level window is \emph{rebalanced},
 meaning that the values in the window are redistributed evenly over the window,
-which will cause some of the values to be moved out from the lower-level window
-which is too full.
+which will cause some of the values to be moved out of the lower-level windows
+which are too full.
 
-Now, to insert a value, the binary tree is used to find a position in the array
+To insert a value, the binary tree is used to find a position in the array
 where the value may be inserted (just before its successor). Then, the windows
 overlapping this position are considered from bottom to top, and the first
 window that can support another element without overflowing is selected, and
-rebalanced (thereby resolving the overflow in all lower level windows).
+then rebalanced (thereby resolving the overflow in all lower level windows).
 
-In the case that all windows overlapping the goal position are overflowing, the
-capacity of the data structure is doubled, a new top level is created and then
-the entire array is rebalanced. This is how the set grows when the number of
-elements stored comes too close to the storage capacity.
+In the case that all windows overlapping the target position would overflow upon
+insertion of the new element, the capacity of the data structure is doubled,
+a new top level is created and then the entire array is rebalanced. This is how
+the set grows when the number of elements stored comes too close to the storage
+capacity. Since changing the capacity causes all values in the array to be moved
+and requires that the entire index tree is recreated, this is an expensive
+operation; however, it occurs only infrequently.
 
 According to this description (which follows the paper by Bender et al) a window
 is rebalanced every time an element is inserted. As an optimization, our
 implementation does not always rebalance a window. When there is free space
 between the successor and predecessor of the value to be inserted, the value
 is simply inserted in the middle. In our experiments, this optimization
-increased performance somewhat.
+yielded an reduction in execution time.
 
 One thing that is not specified in the paper by Bender et al, is how the
-population count for windows is kept. One simply option is to keep no such
+population count for windows is kept. The simplest option is to keep no such
 information and simply scan part of the array whenever a population count is
 required. Another extreme is to keep population counts for all windows on all
 levels, and update these counts whenever values are inserted or moved. In
 our experiments a compromise seemed to work best: keep population counts only
 for the lowest-level windows, and recompute the counts for higher-level windows
-when required. This saves a lot of recomputation, while keeping the additional
+when required. This prevents a lot of recomputation, while keeping the additional
 costs of updating low.
 
 Finally, the Bender set uses a complete binary tree as an index data structure
@@ -458,34 +466,32 @@ elements of the array change.
 
 \subsection{Measurements}
 Measuring the memory usage of a process can be done by retrieving how much of the
-address space has been allocated by a process; typically called the
-\emph{virtual set size}.
-Since a single page can be mapped into memory more than once (either in multiple
-processes, or in the same process) this is not exactly equal to the amount of
-memory allocated for the process, but since the majority of the memory used by
-the data structures is mapped at exactly one location, it is good enough as
-an indication of memory use.
+address space has been allocated by a process; called the \emph{virtual set
+size}. This does not necessarily correspond one-to-one with memory being allocated for the process, but since the majority of the memory used by the
+data structures is mapped at exactly one location, this metric is suitable
+for our experiments.
 
 There are several ways of measuring the time a process takes to execute.
 The simplest is counting the number of seconds elapsed since the start of the
-program (called "wall clock time"). This has the disadvantage that concurrently
-executing processes affect the runtime of the process being measured, so on a
-busy system the reported runtime may vary with different executions.
+program (called \emph{wall clock time}).
+This has the disadvantage that concurrently executing processes affect the runtime
+of the process being measured, so on a busy system the reported runtime may vary
+over different executions.
 
 A different way to measure time is using the statistics the kernel collects
-of how many seconds the CPU spends executing instructions for the process
+of how many seconds the processor spends executing instructions for the process
 (both in user space and in kernel space). These values are independent of
 what other processes are doing, which makes them more consistent across
 multiple executions. However, these values do not account for the time the
-system spends waiting (for example, for a page to be swapped in from disk)
-or the time spend by other processes on behalf of the executing process
+system spends waiting (for example, for data to read from disk)
+or the time spent by other processes on behalf of the executing process
 (for example, the kernel swap daemon on Linux). Since these factors may have
 a large effect on the total running time of the algorithm, it is undesirable
 to leave these out.
 
-Therefore, we decided to measure wall clock time. In order to deal with
-variations across multiple executions, each experiment is run three times,
-and the median value is used for further analysis.
+Therefore, we decided to measure wall clock time. To deal with variations
+across multiple executions, each experiment is run three times, and the median
+value is used for further analysis.
 
 \subsubsection{Framework Overhead}
 Finally, there is another factor that must be taken into account: the test
@@ -495,8 +501,9 @@ of the process. In order to discount these factors, tests are performed using
 a mock set implementation that gives a near-minimal overhead. This works
 by first running with a real set implementation and logging all results
 (the return values of the \verb#insert(S,x)# calls) to a file, and then
-running a second time while reading the stored values. As a result, the mock
-set implementation has very little memory and runtime overhead.
+running a second time while reading the stored values. In the second run,
+the mock set implementation does not have to actually store or retrieve
+data and consequently has negligible memory and runtime overhead.
 
 In the results below, all values are reported relative to the values obtained
 using the mock set implementation, which means the overhead of the test
@@ -516,7 +523,7 @@ only a single core is used when executing tests.
 
 The following models are used for benchmarking:
 \begin{itemize}
-\item\verb#eratosthenes# is a parallel implementation of the sieve
+\item\textbf{Eratosthenes} is a parallel implementation of the sieve
 of Eratosthenes which is used to find prime numbers upto a given maximum.
 It has a single parameter $N$: only integers from 2 to $N$ (exclusive) are
 tested. A new process is created for every prime number found, and as a result
@@ -524,12 +531,12 @@ the state space can only by exhaustively searched for relatively small values
 of $N$ (e.g. $N < 40$). Because processes are dynamically created, state size
 increases during execution.
 
-\item\verb#leader2# is a leader election algorithm with a configurable number
+\item\textbf{Leader2} is a leader election algorithm with a configurable number
 of processes competing for leadership ($N$). Since a constant number of
 processes will be created and these processes cannot make progress until all
 of them are created, almost all states have the same size.
 
-\item\verb#peterson_N# is a Peterson's solution to the multi-process mutual
+\item\textbf{Peterson\_N} is Peterson's solution to the multi-process mutual
 exclusion problem (using global variables instead of channels for
 communication) with a configurable number of processes ($N$). The processes
 are created atomically, so the state size is constant after initialization.
@@ -539,11 +546,11 @@ are created atomically, so the state size is constant after initialization.
 \begin{center}
 \begin{tabular}{ l l l l }
 \hline
-\textbf{Case} & \textbf{Parameters} & \textbf{Iterations} & \textbf{Transitions} \\
+\textbf{Model} & \textbf{Parameters} & \textbf{Iterations} & \textbf{Transitions} \\
 \hline
-eratosthenes & $N=40$ &  1,019,960 &  4,923,218 \\
-leader2      & $N=5$  &  5,950,945 & 23,856,363 \\
-peterson\_N  & $N=4$  & 10,000,000 & 37,434,411 \\
+Eratosthenes & $N=40$ &  1,019,960 &  4,923,218 \\
+Leader2      & $N=5$  &  5,950,945 & 23,856,363 \\
+Peterson\_N  & $N=4$  & 10,000,000 & 37,434,411 \\
 \hline
 \end{tabular}
 \caption{Properties of test cases used}
@@ -552,9 +559,11 @@ peterson\_N  & $N=4$  & 10,000,000 & 37,434,411 \\
 \end{table}
 
 In Table \ref{tab-cases} an overview is given of the parameters of the models used
-and the properties of the execution of the model. Note that the number of transitions
-relative to the number of iterations indicates the percentage of insertion operations
-that results in a new element being added to the set.
+and the resulting properties of the state space search.
+Note that the number of transitions relative to the number of iterations indicates
+the percentage of insertion operations that results in a new element being added
+to the set, which ranges approximately from 4 to 2.7 non-updating queries per
+insertion.
 
 % Possible additional cases:
 % - mobile1
@@ -637,7 +646,6 @@ Explain results for B-tree (higher page size packs more data), hash table (large
 \label{leader2_vss}
 \end{figure}
 
-
 \begin{figure}
 \centering
 \includegraphics[width=83mm]{fig-peterson_wctime}
@@ -674,26 +682,29 @@ Explain results for B-tree (higher page size packs more data), hash table (large
 % - relate to hardware (not many levels of hierarchy)
 
 \section{Conclusion}
-The experimental results clearly show that in terms of both memory usage and execution time,
-the cache-oblivious data structure proposed by Bender, Duan, Iacono and Wu is outperformed
-by traditional data structures in our test scenario.
-The advantage of more cache-friendly behaviour does not appear to be large enough to
-compensate for the increased complexity of the data structure, which results in higher
-memory requirements and increased computational overhead.
-If the data structure does have asymptotic performance benefits, then realistic work loads
-on current hardware systems are not enough to reveal this.
+The experimental results clearly show that in terms of both memory usage and
+execution time, the cache-oblivious data structure proposed by Bender, Duan,
+Iacono and Wu is outperformed by traditional data structures in our test scenario.
+The advantage of more cache-friendly behaviour does not appear to be large enough
+to compensate for the increased complexity of the data structure, which results in
+high ermemory requirements and increased computational overhead.
+If the data structure does have asymptotic performance benefits, then realistic
+work loads on current hardware systems are not enough to reveal this.
+These findings are consistent with earlier results, such as obtained by
+Rahman, Cole and Raman, and Olsen and Skov (see Related Work above).
 
 Of course, this does not prove definitely that cache-oblivious data structures
 are entirely without merit. It should be noted that the experiments performed
-for this research are limited in scope: only a single cache-oblivious data
-structure has been examined, in a single test scenario, on a single hardware
+are limited in scope: only a single cache-oblivious data structure has been
+examined, in a single test scenario, on a single hardware
 and software platform. It is possible that in a different setting,
-cache-oblivious data structure do compare favorably to their traditional
-counterparts.
+different cache-oblivious data structures do compare favorably to their traditional
+counterparts. However, since the observed differences in performance are fairly
+large, it is unlikely that small changes are enough to close the performance gap.
 
 We hope that future research will focus not only on the theoretical performance
-of newly developed algorithms and data structure, but also on the performance
-in practice. Theoretical results are invalueble, but to be of greatest
+of newly developed algorithms and data structures, but also on the performance
+in practice. Theoretical results are invaluable, but to be of greatest
 significance newly developed data structures and algorithms should have
 demonstrable practical merit as well.
 
