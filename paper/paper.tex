@@ -76,7 +76,7 @@ In the memory hierarchy, every next level of storage is both significantly slowe
 \textbf{Type} & \textbf{Total Size} & \textbf{Block Size} & \textbf{Access Time} \\
 \hline
 Registers  &   32 bytes & 4 bytes & 1 cycle \\
-L1 Cache   &   32 KB    & 64 bytes & 3 cyles \\
+L1 Cache   &   32 KB    & 64 bytes & 3 cycles \\
 L2 Cache   &    1 MB    & 64 bytes & 9 cycles \\
 RAM        &   ~2 GB    & 1 KB     & 50-100 cycles \\
 Disk       & ~300 GB    & 4 KB     & 5,000-10,000 cycles \\
@@ -89,12 +89,12 @@ Disk       & ~300 GB    & 4 KB     & 5,000-10,000 cycles \\
 
 To conclude: the memory model used in real computer systems is quite a bit more complex than the uniform memory model assumed. Given this reality, the performance of many existing algorithms and data structures can be improved by taking the existence of a memory hierarchy into account. This has prompted research into new memory models that are more realistic. We will consider three classes of data structures and algorithms, depending on the assumptions that are made about the environment in their definition:
 \begin{list}{}{}
-\item \textbf{Cache-unaware} data structures and algorithms are designed with the traditional uniform memory model in mind, without considering the existance of a memory hierarchy, and may therefore not perform optimally in practice.
+\item \textbf{Cache-unaware} data structures and algorithms are designed with the traditional uniform memory model in mind, without considering the existence of a memory hierarchy, and may therefore not perform optimally in practice.
 \item \textbf{Cache-aware} (or \textbf{cache-conscious}) data structures and algorithms are designed to perform optimally in the external memory model (described below) but require parametrization with some or all properties of the cache layout (such as block size or cache memory size).
 \item \textbf{Cache-oblivious} data structures and algorithms are designed to perform optimally in the cache-oblivious model (explained below) which does not allow para\-metri\-zation with properties of the cache layout.
 \end{list}
 
-Plenty of cache-unaware and cache-aware data structures have been developed and these are also widely used in practice. Altough some research has been done on cache-oblivious data structures, they are seldom used in practice. The main contribution of this paper is to give some insight in the practical merit of cache-oblivious data structures.
+Plenty of cache-unaware and cache-aware data structures have been developed and these are also widely used in practice. Although some research has been done on cache-oblivious data structures, they are seldom used in practice. The main contribution of this paper is to give some insight in the practical merit of cache-oblivious data structures.
 
 \subsection{External Memory Model}
 One of the earliest models to take the differences in memory access cost into account is the external memory model, described by Aggarwal and Vitter \cite{aggarwal1988ioc}. They make a distinction between internal memory (which is limited in size) and external memory (which is virtually unlimited). The external memory is subdivided into blocks of a fixed size and only entire blocks of data can be transferred between the two memories; additionally, consecutive blocks can be transferred at reduced cost (so-called bulk transfer). Although Aggarwal and Vitter focus on magnetic disk as a storage medium for external memory, the model can be generalized to apply to every pair of adjacent levels in the memory hierarchy. In that case, the possibility of bulk transfer may have to be dropped.
@@ -105,7 +105,7 @@ We will call algorithms that are designed to minimize the number of transfers in
 The external memory model has the limitation that it only describes two levels of storage, while we have seen that in practice the memory hierarchy contains more than just two levels. Even though the external memory model can be used to describe any pair of adjacent levels, a particular algorithm can only be tuned to one. Aggarwal, Alpern, Chandra and Snir \cite{aggarwal1987mhm} addressed this shortcoming by introducing a hierarchical memory model in which the cost of accessing a value at specific memory addresses is described by a non-decreasing function of these addresses, which means that accessing data at higher addresses can be slower than at lower addresses. This more closely resembles a real memory hierarchy, but assumes that the application has full control over which data is placed where and that data at all locations can be accessed directly, which is usually not the case in practice. As a result, the applicability of their model to the design and evaluation of \emph{practical} algorithms is limited.
 
 \subsection{Cache-Oblivious Memory Model}
-A different approach to generalizing the external memory model was taken by Prokop \cite{prokop1999coa} who proposed the cache-oblivious model, which consists of an infinitely large external memory and an internal memory of size M which operates as a cache for the external memory. Data is transferred between the two in aligned data blocks of size B. In contrast with the hierarchical memory model, the application does not have explicit control over the transfering of blocks between the two memories. Instead, it is assumed that an optimal cache manager exists which minimizes the number of block transfers over the execution the program. Additionally (and in contrast with the external memory model) the values of parameters like M and B are not known to the application, so they cannot be used explicitly when defining algorithms and datastructures. Of course, analysis in terms of memory transfers does involve these parameters, so the number of memory transfers performed is still a function of M and B (and other parameters relevant to the problem).
+A different approach to generalizing the external memory model was taken by Prokop \cite{prokop1999coa} who proposed the cache-oblivious model, which consists of an infinitely large external memory and an internal memory of size M which operates as a cache for the external memory. Data is transferred between the two in aligned data blocks of size B. In contrast with the hierarchical memory model, the application does not have explicit control over the transferring of blocks between the two memories. Instead, it is assumed that an optimal cache manager exists which minimizes the number of block transfers over the execution the program. Additionally (and in contrast with the external memory model) the values of parameters like M and B are not known to the application, so they cannot be used explicitly when defining algorithms and data structures. Of course, analysis in terms of memory transfers does involve these parameters, so the number of memory transfers performed is still a function of M and B (and other parameters relevant to the problem).
 
 Algorithms that perform optimally in this model are called ``cache-oblivious'' and they distinguish themselves from cache-aware algorithms in that they cannot rely on knowledge of the block size or other specific properties of the cache configuration. The key advantage of this class of algorithms is that, even though they are defined in a two-level memory model, they are implicitly tuned to all levels in the memory hierarchy at once. It has been conjectured that these algorithms may therefore perform better than algorithms that are tuned to a specific level in the hierarchy only.
 
@@ -146,7 +146,7 @@ Later, Bender, Duan, Iacono and Wu simplified the data structure \cite{bender200
 
 Several data structures were proposed by Rahman, Cole and Raman \cite{rahman2001opd} amongst them a cache-oblivious exponential search tree with a similar structure as the static search tree proposed by Prokop. In their experimental results the cache-oblivious tree performs worse than the (non-oblivious) alternatives. Nevertheless, they conclude that \textit{``cache-obli\-vious data structures may have significant practical importance''}.
 
-Askitis and Zobel \cite{askitis2005ccc} propose a way to optimize seperate-chaining hash tables for cache-efficiency by storing the linked lists that contain the contents for a bucket in contiguous memory. Their experiments show a performance gain over traditional methods, especially when the hash table is heavily loaded.
+Askitis and Zobel \cite{askitis2005ccc} propose a way to optimize separate-chaining hash tables for cache-efficiency by storing the linked lists that contain the contents for a bucket in contiguous memory. Their experiments show a performance gain over traditional methods, especially when the hash table is heavily loaded.
 
 Vitter presents a theoretical survey of algorithms evaluated in a parallel disk model \cite{vitter2001ema}, which is a refinement of the external memory model described by Aggarwal and Vitter, but only allows parallel transfer of multiple blocks from different disks, which is more realistic. Unfortunately, his survey lacks empirical results.
 
@@ -227,7 +227,7 @@ search, which means the queue operates by a first-in first-out principle.
 
 From the pseudo-code it is clear that the state space search algorithm does not
 accomplish much by itself; instead, the real work is done by the successor
-function and the queue and the set datastructures. Queues can easily be
+function and the queue and the set data structures. Queues can easily be
 implemented efficiently (adding and removing states takes O(1) time).
 The efficiency of the successor function depends on the execution model used,
 but is typically linear in the number of states produced. In practice,
@@ -296,14 +296,14 @@ when and which pages are transferred between main memory and disk storage; the
 application assumes no control over this policy. This is in accordance with the
 cache-oblivious model, that assumes no control over the cache is possible.
 Additionally, memory mapped files bypass the C library's allocation functions
-and give the implementor complete control over how data is ordered in (virtual)
+and give the implementer complete control over how data is ordered in (virtual)
 memory.
 
 \subsubsection{Hash Table Implementation}
 In its simplest form, a hash table consists of an
 index array (the \emph{index}) with a fixed number of slots. A \emph{hash
 function} is used to map key values onto slot numbers. If the slot for a value
-is empty, it may be inserted there. Queries for the existance of an element in
+is empty, it may be inserted there. Queries for the existence of an element in
 the hash table similarly see if the queried value is stored at its designated
 slot.
 
@@ -346,7 +346,7 @@ relatively cheap compared to accessing several smaller blocks.
 B-tree pages are ordered in a tree structure. Values in a page are stored
 in order, and pointers are added that originate between a pair of adjacent
 values, and point to a subtree containing only values that fall in between those
-values. The resulting tree is typically very shallow, which is benefical,
+values. The resulting tree is typically very shallow, which is beneficial,
 as the number of pages that need to be retrieved (worst case) is equal to
 the height of the tree.
 
@@ -365,7 +365,7 @@ as individual values fit in the size of a single page. However, there is no
 obvious way to store values that are larger than the size of a single page.
 Production-quality implementations handle this case separately. Our our
 implementation does not support this requires stored values to
-be smaller than the pagesize. Additionally, deletion of items has not been
+be smaller than the page size. Additionally, deletion of items has not been
 implemented.
 
 \subsubsection{Bender Set Implementation}
@@ -456,7 +456,7 @@ as the sparse array (including empty values).
 Interior nodes store the maximum value of their two children (or an empty value,
 if both children store an empty value).
 This tree can be used in a similar way as a binary search tree: by examining the
-two children of a node, we can determine wether a searched-for value lies in the
+two children of a node, we can determine whether a searched-for value lies in the
 left or right subtree.
 
 Note that the \emph{structure} of the tree is static and only changes when the
@@ -524,7 +524,7 @@ only a single core is used when executing tests.
 The following models are used for benchmarking:
 \begin{itemize}
 \item\textbf{Eratosthenes} is a parallel implementation of the sieve
-of Eratosthenes which is used to find prime numbers upto a given maximum.
+of Eratosthenes which is used to find prime numbers up to a given maximum.
 It has a single parameter $N$: only integers from 2 to $N$ (exclusive) are
 tested. A new process is created for every prime number found, and as a result
 the state space can only by exhaustively searched for relatively small values
@@ -574,7 +574,7 @@ insertion.
 \section{Results}
 
 TODO: describe parameters of data structures
-Explain results for B-tree (higher page size packs more data), hash table (larger index, less collissions, cache miss anyway)
+Explain results for B-tree (higher page size packs more data), hash table (larger index, less collisions, cache miss anyway)
 
 \begin{figure}
 \centering
@@ -685,7 +685,7 @@ Explain results for B-tree (higher page size packs more data), hash table (large
 The experimental results clearly show that in terms of both memory usage and
 execution time, the cache-oblivious data structure proposed by Bender, Duan,
 Iacono and Wu is outperformed by traditional data structures in our test scenario.
-The advantage of more cache-friendly behaviour does not appear to be large enough
+The advantage of more cache-friendly behavior does not appear to be large enough
 to compensate for the increased complexity of the data structure, which results in
 high ermemory requirements and increased computational overhead.
 If the data structure does have asymptotic performance benefits, then realistic
