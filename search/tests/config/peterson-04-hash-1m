@@ -1,0 +1,2 @@
+MODEL=peterson_N
+SET="hash capacity=1000000"

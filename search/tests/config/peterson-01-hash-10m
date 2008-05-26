@@ -1,2 +1,2 @@
 MODEL=peterson_N
-SET="hash capacity=100000000"
+SET="hash capacity=10000000"
