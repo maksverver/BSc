@@ -61,9 +61,9 @@
      objecttolerance="10"
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
-     inkscape:zoom="1.4"
-     inkscape:cx="310.24938"
-     inkscape:cy="762.68551"
+     inkscape:zoom="1.979899"
+     inkscape:cx="326.07687"
+     inkscape:cy="792.53309"
      inkscape:document-units="px"
      inkscape:current-layer="layer1"
      showgrid="true"
@@ -229,25 +229,6 @@
          x="354.31"
          y="307.98422"
          style="font-size:12px;text-align:center;text-anchor:middle">Disk-based Storage</tspan></text>
-    <path
-       style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:0.76714849;stroke-linecap:butt;stroke-linejoin:miter;marker-start:url(#Arrow1Mstart);marker-end:url(#Arrow1Mend);stroke-miterlimit:4;stroke-dasharray:0.76714849, 0.76714849;stroke-dashoffset:0;stroke-opacity:1"
-       d="M 354.33071,317.12597 L 354.33071,330.41336"
-       id="path10818" />
-    <path
-       style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:0.76714849;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:3.06859394, 3.06859394;stroke-dashoffset:0;stroke-opacity:1"
-       d="M 212.59843,330.41336 L 194.88189,356.98817 L 513.77953,356.98817 L 496.06299,330.41336 L 212.59843,330.41336 z"
-       id="path10820"
-       sodipodi:nodetypes="ccccc" />
-    <text
-       xml:space="preserve"
-       style="font-size:12px;font-style:normal;font-weight:normal;text-align:center;text-anchor:middle;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;font-family:Arial"
-       x="353.57141"
-       y="346.57648"
-       id="text10822"><tspan
-         sodipodi:role="line"
-         id="tspan10824"
-         x="353.57141"
-         y="346.57648">Network Attached Storage (optional)</tspan></text>
     <path
        style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:1.19372201px;stroke-linecap:butt;stroke-linejoin:miter;marker-end:url(#Arrow1Mend);stroke-opacity:1"
        d="M 210.59843,149.10234 L 264.04796,149.10234"
