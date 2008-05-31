@@ -674,7 +674,7 @@ result more pages to be fetched for a query. The hash table does not have such a
 limitation, as every value in the bucket must be fetched independently, regardless
 of the size of these values.
 
-When it comes to memory usage the B-tree and hash table have similar requirements;
+With respect to memory usage the B-tree and hash table have similar requirements;
 the B-tree has slightly larger overhead per value stored, but initially the hash
 table uses more memory because of the space allocated for the index.
 
@@ -691,20 +691,56 @@ especially when a window is rebalanced). Unfortunately, the insert/look-up
 ratio for our test cases varies too little to derive a meaningful conclusion
 in this regard.
 
-Finally, it should be noted that in our experiments only part of the memory
-hierarchy was used (up to the use of main memory). This still involves several
-levels of processor cache, but it is not a very deep hierarchy. With a deeper
-memory hierarchy, with greater differences in access times between the levels,
-the cache-efficient data structures (the B-tree and the Bender set) should
-perform relatively better.
-
 \subsection{Implementation Complexity}
 Since all data structures used were implemented from scratch, our research
 also yields some insight in the implementation complexity of the different
 data structures.
 
+\begin{table}
+\begin{center}
+\begin{tabular}{ l r r }
+\hline
+\textbf{Purpose} & \textbf{Lines} & \textbf{Percentage} \\
+\hline
+Common code       & 433 & 18.21\% \\
+Hash table        & 146 &  6.14\% \\
+B-tree            & 299 & 12.57\% \\
+Bender set        & 623 & 26.20\% \\
+Queue             & 184 &  7.74\% \\
+Search Framework  & 693 & 29.14\% \\
+\hline
+\end{tabular}
+\caption{Source lines of code of the test application}
+\label{tab-loc}
+\end{center}
+\end{table}
 
+Table \ref {tab-loc} gives an overview of the source lines of code used for
+the test application, after removing comments and blank lines (which together
+amount for about 25\% of the code). Common code includes allocation functions,
+interface descriptions and comparison and hashing functions. The framework
+includes not just the search algorithm, but also the functionality to report
+various metrics while running a test case.
 
+Although not a perfect metric of implementation complexity, the lines of code
+required for the various components of the test application do give some
+insight in the relative complexity of the data structures. It is apparent why
+hash tables are popular: they perform well while they are relatively easy to
+implement.
+
+\section{Future work}
+[[Measure different data structures]]
+
+[[Measure performance in low memory environments (using disk)]]
+
+[[Mesure cache performance specifically]]
+
+It should be noted that in our experiments only part of the memory
+hierarchy was used (up to the use of main memory). This still involves several
+levels of processor cache, but it is not a very deep hierarchy. With a deeper
+memory hierarchy, with greater differences in access times between the levels,
+the cache-efficient data structures (the B-tree and the Bender set) should
+perform relatively better.
 
 \section{Conclusion}
 The experimental results clearly show that in terms of both memory usage and
