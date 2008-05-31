@@ -19,8 +19,8 @@ aggregate() {
 
 aggregate eratosthenes qsz    base
 aggregate eratosthenes trans  base
-aggregate eratosthenes vss    base 01 02 03 04 05 06 07 08 09
-aggregate eratosthenes wctime base 01 02 03 04 05 06 07 08 09
+aggregate eratosthenes vss    base 01 02 03 04 05 06 07 08 09 10 11
+aggregate eratosthenes wctime base 01 02 03 04 05 06 07 08 09 10 11
 
 aggregate leader2      qsz    base
 aggregate leader2      trans  base

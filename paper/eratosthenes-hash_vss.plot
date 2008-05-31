@@ -1,5 +1,5 @@
 set xlabel "Iterations (x1000)"
 set ylabel "Memory (MB)"
-plot "aggregated/eratosthenes-01_vss" with lines title "capacity=100k", \
-     "aggregated/eratosthenes-02_vss" with lines title "capacity=1m", \
-     "aggregated/eratosthenes-03_vss" with lines title "capacity=10m";
+plot "aggregated/eratosthenes-01_vss" with lines title "capacity=100,000", \
+     "aggregated/eratosthenes-02_vss" with lines title "capacity=1,000,000", \
+     "aggregated/eratosthenes-03_vss" with lines title "capacity=10,000,000";

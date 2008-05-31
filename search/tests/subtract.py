@@ -49,7 +49,7 @@ for line in file(argv[2]):
     if key not in base:
         print >>stderr, 'WARNING: missing base value for key', key
         continue
-    medi = parse(row[1]) - base[key]
-    mini = parse(row[2]) - base[key]
-    maxi = parse(row[3]) - base[key]
+    medi = max(0, parse(row[1]) - base[key])
+    mini = max(0, parse(row[2]) - base[key])
+    maxi = max(0, parse(row[3]) - base[key])
     print "%19s %19s %19s %19s" % (str(key), str(medi), str(mini), str(maxi))

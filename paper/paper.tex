@@ -12,7 +12,7 @@
 
 \begin{document}
 
-\title{Evaluation of Cache-Oblivious Data Structures [draft-1]}
+\title{Evaluation of a Cache-Oblivious Data Structure [draft-1]}
 
 \numberofauthors{1}
 \author{Maks Verver\\ \email{m.verver@student.utwente.nl}}
@@ -37,13 +37,15 @@ Mathematics and Computer Science}
 \begin{abstract}
 In modern computer hardware architecture memory is organized in a hierarchy
 consisting of several types of memory with different memory sizes, block
-transfer sizes and access times. To reflect this situation more accurately
-than traditional models, the cache-oblivious model has been proposed, and
-several algorithms and data structures have been developed that perform
-optimally in this model.
+transfer sizes and access times.
+Traditionally, data structures are evaluated in a theoretical model that
+does not take the existance of a memory hierarchy into account. The
+cache-oblivious model has been proposed as a more accurate model.
+Although several data structures have been described in this model
+relatively little empirical performance data is available.
 This paper presents the results of an empirical evaluation of several data
-structures in a realistic scenario, and gives insight into the applicability
-of cache-oblivious data structure in practice.
+structures in a realistic scenario and aims to provide insight into
+the applicability of cache-oblivious data structures in practice.
 \end{abstract}
 
 \keywords{cache efficiency, locality of reference, algorithms}
@@ -612,13 +614,14 @@ problems as the 1KB page size here.
 Finally, in Figure \ref{fig-eratosthenes-bender_wctime} the execution times for
 the Bender set with several different density parameters are given. With a lower
 density, more space is required, but new insertions less frequently cause large windows to be rebalanced.
-Suprisingly, the execution times for the different density values are comparable.
-Figure \ref{fig-eratosthenes-bender_vss} shows that the lower density parameters do
-indeed use a lot more memory. It appears that the advantage of low density is
+The execution times for the density values of 0.5 and lower are almost the same
+while larger density values are slower.
+Figure \ref{fig-eratosthenes-bender_vss} shows that the lower the density value,
+the more memory is used. It appears that the advantage of low density is
 negated by the overhead of constructing increasingly large data structures.
 The set with $\delta=0.125$ cannot even finish the test case in the memory
-that is available. Since execution times are similar, we select
-$\delta=0.5$ for future experiments in order to minimize memory use.
+that is available. We select $\delta=0.5$ for future experiments, which strikes
+a good balance between execution time and required memory.
 
 % TODO: test with larger density!
 
@@ -693,7 +696,7 @@ in practice. Theoretical results are invaluable, but to be of greatest
 significance newly developed data structures and algorithms should have
 demonstrable practical merit as well.
 
-\bibliographystyle{plain}
+\bibliographystyle{unsrt}
 \bibliography{paper}
 
 
