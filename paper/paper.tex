@@ -120,7 +120,7 @@ Of course, analysis in terms of memory transfers does involve these parameters, 
 
 Algorithms that perform optimally in this model are called ``cache-oblivious'' and they distinguish themselves from cache-aware algorithms in that they cannot rely on knowledge of the block size or other specific properties of the cache configuration. The key advantage of this class of algorithms is that, even though they are defined in a two-level memory model, they are implicitly tuned to all levels in the memory hierarchy at once. It has been conjectured that these algorithms may therefore perform better than algorithms that are tuned to a specific level in the hierarchy only.
 
-Demaine gives an introduction into the cache-oblivious memory model and an overview of a selection of cache-oblivious data structures and algorithms \cite{demaine2002coa}. He also motivates the simplifications made in the cache-oblivious memory model, such as the assumption of full cache associativity and an optimal replacement policy.
+The lack of unrealistic requirements combined with the promise of cache-efficiency accross multiple levels of the memory hierarchy, makes it an interesting model for the development of low-maintenance, high-performance data structures for use in real-world applications.
 
 \section{Contributions}
 Several cache-oblivious data structures and algorithms have been proposed. Complexity analysis shows that the proposed solutions are asymptotically optimal. However, in software engineering practice we are not only interested in computational complexity, but also in the practical performance of data structures and algorithms. Indeed, many algorithms that have suboptimal computational complexity are actually widely used because they perform well in practice (for example, sorting algorithms like Quicksort and Shell sort) and the converse is true as well: some algorithms, although theoretically sound, are unsuitable for practical use because of greater memory requirements, longer execution time, or difficulty of implementation (for example: linear-time construction of suffix arrays is possible, but in practice slower alternatives are often preferred that are easier to implement and require less memory).
@@ -130,6 +130,8 @@ This raises the question whether cache-oblivious data structures are actually pr
 \section{Related Work}
 \label{sect-related-work}
 Many data structures and algorithms have been analyzed in the cache-oblivious model. Several new data structures and algorithms have been developed that perform optimally in this mo\-del as well. Prokop presents asymptotically optimal cache-oblivious algorithms for matrix transposition, fast Fourier transformation and sorting \cite{prokop1999coa}.
+
+Demaine gives an introduction into the cache-oblivious memory model and an overview of a selection of cache-oblivious data structures and algorithms \cite{demaine2002coa}. He also motivates the simplifications made in the cache-oblivious memory model, such as the assumption of full cache associativity and an optimal replacement policy.
 
 Bender, Demaine and Farach-Colton designed a cache-oblivious data structure that supports the same operations as a B-tree \cite{bender2005cob} achieving optimal complexity bounds on search and nearly-optimal bounds on insertion.
 Later, Bender, Duan, Iacono and Wu simplified this data structure \cite{bender2004lpc} while preserving the supported operations and complexity bounds and adding support for additional operations (finger searches in particular).
@@ -477,10 +479,33 @@ costs of updating low.
 
 Finally, the Bender set uses a complete binary tree as an index data structure
 to efficiently find the successor element for a given value. The tree is
-stored in memory in van Emde Boas layout (as described by Prokop) to allow
-efficient cache-oblivious traversal.
+stored in memory in van Emde Boas layout to allow cache-oblivious
+traversal. This layout is named after the data structure described in
+\cite{vanemdeboas1976dai} and determines an order in which the nodes of a
+tree can be stored in a contiguous block of memory, in such a way that traversing
+a tree with $N$ nodes from root to leaf requires only $O(\log_B N + 1)$ pages to be
+fetched from memory.
 
-In the tree, the leaf nodes (when numbered from left to right) store the same values
+In van Emde Boas lay-out, which is defined recursively, a tree with 
+$N$ nodes is divided in half vertically, creating a small subtree at the
+top and a number of subtrees (approximately $\sqrt{N}$) below. Each subtree
+has a size of approximately $\sqrt{N}$ nodes and will be stored in a
+contiguous block of memory.
+
+In Figure \ref{fig-van-emde-boas} a binary tree is shown, with the nodes
+labeled with their positions according to the van Emde Boas layout.
+In this example, only two levels of recursion are needed. If each page
+stores three nodes, the path from node 1 to node 12 (or any other leaf node)
+requires visits only two pages.
+
+\begin{figure}
+\centering
+\includegraphics[width=83mm]{vanemdeboas}
+\caption{A binary tree in van Emde Boas layout}
+\label{fig-van-emde-boas}
+\end{figure}
+
+In the index tree used for the Bender set, the leaf nodes store the same values
 as the sparse array (including empty values).
 Interior nodes store the maximum value of their two children (or an empty value,
 if both children store an empty value).
@@ -520,7 +545,7 @@ a large effect on the total running time of the algorithm, it is undesirable
 to leave these out.
 
 Therefore, we decided to measure wall clock time. To deal with variations
-across multiple executions, each experiment is run five times, and the median
+across multiple executions, each experiment is run seven times, and the median
 value is used for further analysis.
 
 \subsubsection{Framework Overhead}
@@ -620,9 +645,9 @@ it becomes too full, at which point each slot in the hash table has to store a
 long list of values that map to that slot.
 As Figure \ref{fig-eratosthenes-hash_vss} shows, the only difference in memory
 usage by the different hash tables is in the (fixed) size of the index.
-Although for this case the hash table with an index size of 1,000,000 is
-slightly faster, we will use an index size of 10,000,000 for further
-experiments, as these cases require more values to be stored.
+We will use the hash table with an index size of 10,000,000 for further
+experiments, as it performed best in this case, and seems suitable for other
+cases (which require storing more values) as well.
 
 Figure \ref{fig-eratosthenes-btree_wctime} and Figure
 \ref{fig-eratosthenes-btree_vss} show the execution time and memory usage
@@ -684,6 +709,11 @@ The performance of the Bender set does not seem to depend on the page size,
 and as a result the difference between the Bender set and the B-tree is smallest
 when the page size is largest. Unfortunately, even then it requires about three
 times as much time and a lot more memory.
+
+The increased memory requirements of the Bender set can in part be explained by
+our implementation of variable-length values, which wastes some space by storing
+them in fixed-size slots. This overhead should be less than 25\% on average
+(and at most 50\% in the worst case).
 
 The test cases used all have a relatively high percentage of insertions relative
 to value look-ups. This may explain the good performance of the hash table (for

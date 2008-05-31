@@ -5,7 +5,8 @@ PLOTS=fig-queuesize.eps fig-transitions.eps \
       fig-eratosthenes-btree_vss.eps fig-eratosthenes-btree_wctime.eps \
       fig-leader2_vss.eps fig-leader2_wctime.eps \
       fig-peterson_vss.eps fig-peterson_wctime.eps
-FIGURES=memhier.eps hash-table.eps b-tree.eps bender-set.eps $(PLOTS)
+FIGURES=memhier.eps hash-table.eps b-tree.eps bender-set.eps vanemdeboas.eps \
+        $(PLOTS)
 
 all: paper.dvi
 
