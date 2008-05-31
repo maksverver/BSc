@@ -17,7 +17,7 @@
 \numberofauthors{1}
 \author{Maks Verver\\ \email{m.verver@student.utwente.nl}}
 
-% Obligatory permission block
+% Obligatory permission block   
 \toappear{
 Permission to make digital or hard copies of all or part of this work
 for personal or classroom use is granted without fee provided that
@@ -26,7 +26,7 @@ and that copies bear this notice and the full citation on the first
 page. To copy otherwise, or republish, to post on servers or to
 redistribute to lists, requires prior specific permission.
 
-\textit{\small 9$^{th}$ Twente Student Conference on IT, Enschede, June, 2008}
+\textit{\small 9$^{th}$ Twente Student Conference on IT, Enschede, June 23$^{rd}$, 2008}
 
 Copyright 2008, University of Twente, Faculty of Electrical Engineering,
 Mathematics and Computer Science}
@@ -128,6 +128,7 @@ Several cache-oblivious data structures and algorithms have been proposed. Compl
 This raises the question whether cache-oblivious data structures are actually preferable to traditional data structures in practice. To determine if cache-oblivious data structures have practical merit, empirical performance data is required, which is scarce as existing research has focused mainly on theoretical analysis. This paper addresses the question by reporting on the performance of newly implemented (but previously described) cache-oblivious data structures and their traditional counterparts (both cache-aware and cache-unaware data structures).
 
 \section{Related Work}
+\label{sect-related-work}
 Many data structures and algorithms have been analyzed in the cache-oblivious model. Several new data structures and algorithms have been developed that perform optimally in this mo\-del as well. Prokop presents asymptotically optimal cache-oblivious algorithms for matrix transposition, fast Fourier transformation and sorting \cite{prokop1999coa}.
 
 Bender, Demaine and Farach-Colton designed a cache-oblivious data structure that supports the same operations as a B-tree \cite{bender2005cob} achieving optimal complexity bounds on search and nearly-optimal bounds on insertion.
@@ -137,7 +138,7 @@ The authors note that a chief advantage of their data structure over the previou
 
 Several data structures were proposed by Rahman, Cole and Raman \cite{rahman2001opd} amongst them a cache-oblivious exponential search tree with a similar structure as the static search tree proposed by Prokop. In their experimental results the cache-oblivious tree performs worse than the (non-oblivious) alternatives. Nevertheless, they conclude that \textit{``cache-obli\-vious data structures may have significant practical importance''}.
 
-Askitis and Zobel \cite{askitis2005ccc} propose a way to optimize separate-chaining hash tables for cache-efficiency by storing the linked lists that contain the contents for a bucket in contiguous memory. Their experiments show a performance gain over traditional methods, especially when the hash table is heavily loaded.
+Askitis and Zobel \cite{askitis2005ccc} propose a way to optimize separate-chaining hash tables for cache efficiency by storing the linked lists that contain the contents for a bucket in contiguous memory. Their experiments show a performance gain over traditional methods, especially when the hash table is heavily loaded.
 
 Vitter presents a theoretical survey of algorithms evaluated in a parallel disk model \cite{vitter2001ema}, which is a refinement of the external memory model described by Aggarwal and Vitter, but only allows parallel transfer of multiple blocks from different disks, which is more realistic. Unfortunately, his survey lacks empirical results.
 
@@ -334,7 +335,7 @@ considerably. The index is stored at the front of the file, after which values
 are simply appended in the order in which they are added. Note that we do not
 support removing elements from the hash table, which means we do not have to
 deal with holes that would otherwise occur in the stored file.
-Figure \ref{hash-table} shows a hash table (with an index size of four,
+Figure \ref{fig-hash-table} shows a hash table (with an index size of four,
 storing three values) and the way it is stored in consecutive memory.
 
 For our
@@ -546,9 +547,9 @@ more for the slower data structures).
 
 \subsubsection{System Configuration}
 The experiments where performed on a 64-bit Linux (kernel 2.6) system
-with an Intel Xeon E5320 processor (1.86 GHz, 4~MB cache) and 8~GB of main
-memory and 2~GB swap file. Although the system is a multiprocessor system
-(and the E5320 is a dual-core processor) all code is single-threaded so
+with an Intel Xeon E5335 processor (2~GHz, 4~MB cache) and 8~GB of main
+memory (no swap file). Although the system is a multiprocessor system
+(and the E5335 is a dual-core processor) all code is single-threaded so
 only a single core is used when executing tests.
 
 The following models are used for benchmarking:
@@ -619,8 +620,9 @@ it becomes too full, at which point each slot in the hash table has to store a
 long list of values that map to that slot.
 As Figure \ref{fig-eratosthenes-hash_vss} shows, the only difference in memory
 usage by the different hash tables is in the (fixed) size of the index.
-We will use the hash table with an index size of 10,000,000 for further
-experiments, as it seems to perform best even for a relatively small test case.
+Although for this case the hash table with an index size of 1,000,000 is
+slightly faster, we will use an index size of 10,000,000 for further
+experiments, as these cases require more values to be stored.
 
 Figure \ref{fig-eratosthenes-btree_wctime} and Figure
 \ref{fig-eratosthenes-btree_vss} show the execution time and memory usage
@@ -728,40 +730,50 @@ insight in the relative complexity of the data structures. It is apparent why
 hash tables are popular: they perform well while they are relatively easy to
 implement.
 
-\section{Future work}
-[[Measure different data structures]]
-
-[[Measure performance in low memory environments (using disk)]]
-
-[[Mesure cache performance specifically]]
-
+\section{Future Work}
 It should be noted that in our experiments only part of the memory
 hierarchy was used (up to the use of main memory). This still involves several
-levels of processor cache, but it is not a very deep hierarchy. With a deeper
+levels of processor cache, but it is not a very deep hierarchy. In a deeper
 memory hierarchy, with greater differences in access times between the levels,
 the cache-efficient data structures (the B-tree and the Bender set) should
-perform relatively better.
+perform better. Specifically, using disk-based storage as the lowest level of
+storage seems a logical extension of our research.
+
+In our experiments we did not measure cache efficiency specifically; instead,
+we measured total execution time only, which is affected by several different
+factors of which cache efficiency is only one.
+To better understand how different factors influence performance, it would
+be interesting to measure cache efficiency seperately and reporton actual
+cache hits and misses on different boundaries of the memory hierarchy.
+
+Finally, we only evaluated a single data structure in a single test
+environment (even though we used more than one model to perform experiments).
+To draw more general conclusions about the practical merits of cache-oblivious
+data structures, it will be necessary to perform experiments at a larger scale,
+comparing multiple cache-oblivious data structures and using scenarios that
+differ more.
 
 \section{Conclusion}
-The experimental results clearly show that in terms of both memory usage and
-execution time, the cache-oblivious data structure proposed by Bender, Duan,
-Iacono and Wu is outperformed by traditional data structures in our test scenario.
+The experimental results clearly show that the cache-oblivious data structure
+proposed by Bender, Duan, Iacono and Wu is outperformed by traditional data
+structures in our test scenario, in terms of both execution time and memory use.
 The advantage of more cache-friendly behavior does not appear to be large enough
 to compensate for the increased complexity of the data structure, which results in
-high ermemory requirements and increased computational overhead.
+higher memory requirements and increased computational overhead.
 If the data structure does have asymptotic performance benefits, then realistic
 work loads on current hardware systems are not enough to reveal this.
 These findings are consistent with earlier results, such as obtained by
-Rahman, Cole and Raman, and Olsen and Skov (see Related Work above).
+Rahman, Cole and Raman, and Olsen and Skov (see Section \ref{sect-related-work}).
 
-Of course, this does not prove definitely that cache-oblivious data structures
-are entirely without merit. It should be noted that the experiments performed
-are limited in scope: only a single cache-oblivious data structure has been
-examined, in a single test scenario, on a single hardware
-and software platform. It is possible that in a different setting,
-different cache-oblivious data structures do compare favorably to their traditional
-counterparts. However, since the observed differences in performance are fairly
-large, it is unlikely that small changes are enough to close the performance gap.
+Of course, this does not prove conclusively that cache-oblivious data structures
+are entirely without merit. Our experiments are limited in scope: only a single
+cache-oblivious data structure has been examined, in a single test scenario,
+on a single hardware
+and software platform.
+It is possible that in a different setting, different cache-oblivious data
+structures do compare favorably to their traditional counterparts.
+However, since the observed differences in performance are fairly large,
+it is unlikely that small changes are enough to close the performance gap.
 
 We hope that future research will focus not only on the theoretical performance
 of newly developed algorithms and data structures, but also on the performance
@@ -785,8 +797,6 @@ demonstrable practical merit as well.
 %\caption{Transitions}
 %\label{fig-transitions}
 %\end{figure}
-
-\section{Results}
 
 \begin{figure}[p]
 \centering
