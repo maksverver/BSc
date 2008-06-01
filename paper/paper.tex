@@ -39,7 +39,7 @@ In modern computer hardware architecture memory is organized in a hierarchy
 consisting of several types of memory with different memory sizes, block
 transfer sizes and access times.
 Traditionally, data structures are evaluated in a theoretical model that
-does not take the existance of a memory hierarchy into account. The
+does not take the existence of a memory hierarchy into account. The
 cache-oblivious model has been proposed as a more accurate model.
 Although several data structures have been described in this model
 relatively little empirical performance data is available.
@@ -104,11 +104,11 @@ not allow para\-metri\-zation with properties of the cache layout.
 A great number of cache-unaware and cache-aware data structures has been developed and these are also widely used in practice.
 Although some research has been done on cache-oblivious data structures, there is currently no evidence that they are used in practice. Consequently, it is unclear if they are suitable for practical use at all. The main goal for this paper is to give some insight in the practical merit of cache-oblivious data structures.
 
-In the following pages we will give an overview of the different available memory models and explain why the cache-oblivious mod\-el is of particular interest. We will then describe what our goals for this research project were and how our work relates to previous research.
+In the following pages we will give an overview of the different available memory models and explain why the cache-obliv\-i\-ous mod\-el is of particular interest. We will then describe what our goals for this research project were and how our work relates to previous research.
 A large part of the paper will be dedicated to a description of our research methodology. Finally, we will present and discuss our results, and draw a conclusion on the applicability of cache-oblivious data structures.
 
 \section{Previous Work}
-The cache-oblivious memory model is not the only or the first model that was developed as a more realistic alternative to the uniform memory model. We will briefly describe some of the alternatives.
+The cache-oblivious memory model is not the only or the first mod\-el that was developed as a more realistic alternative to the uniform memory model. We will briefly describe some of the alternatives.
 
 \subsection{External Memory Model}
 One of the earliest models to take the differences in memory access cost into account is the external memory model, described by Aggarwal and Vitter \cite{aggarwal1988ioc}. They make a distinction between internal memory (which is limited in size) and external memory (which is virtually unlimited). The external memory is subdivided into blocks of a fixed size and only entire blocks of data can be transferred between the two memories; additionally, consecutive blocks can be transferred at reduced cost (so-called bulk transfer). Although Aggarwal and Vitter focus on magnetic disk as a storage medium for external memory, the model can be generalized to apply to every pair of adjacent levels in the memory hierarchy. In that case, the possibility of bulk transfer may have to be dropped.
@@ -168,7 +168,7 @@ The authors note that a chief advantage of their data structure over the
 previously described one is that it is less complex, more easily implementable
 and therefore more suitable for practical use.
 
-Several data structures were proposed by Rahman, Cole and Raman \cite{rahman2001opd} amongst them a cache-oblivious exponential search tree with a similar structure as the static search tree proposed by Prokop. In their experimental results the cache-oblivious tree performs worse than the (non-oblivious) alternatives. Nevertheless, they conclude that \textit{``cache-obli\-vious data structures may have significant practical importance''}.
+Several data structures were proposed by Rahman, Cole and Raman \cite{rahman2001opd} amongst them a cache-oblivious exponential search tree with a similar structure as the static search tree proposed by Prokop. In their experimental results the cache-oblivious tree performs worse than the (non-oblivious) alternatives. Nevertheless, they conclude that \textit{``cache-oblivious data structures may have significant practical importance''}.
 
 Askitis and Zobel \cite{askitis2005ccc} propose a way to optimize
 separate-chaining hash tables for cache efficiency by storing the linked lists
@@ -178,7 +178,7 @@ is heavily loaded.
 
 Vitter presents a theoretical survey of algorithms evaluated in a parallel disk model \cite{vitter2001ema}, which is a refinement of the external memory model described by Aggarwal and Vitter, but only allows parallel transfer of multiple blocks from different disks, which is more realistic. Unfortunately, his survey lacks empirical results.
 
-Olsen and Skov evaluated two cache-oblivious priority queue data structures in practice \cite{olsen2002coa} and designed an optimal cache-obli\-vious priority deque. Their main result is that although the cache-obli\-vious data structures they examined make more efficient use of the cache, they do not perform better than traditional priority queue implementations.
+Olsen and Skov evaluated two cache-oblivious priority queue data structures in practice \cite{olsen2002coa} and designed an optimal cache-oblivious priority deque. Their main result is that although the cache-obliv\-i\-ous data structures they examined make more efficient use of the cache, they do not perform better than traditional priority queue implementations.
 
 From the available publications we can conclude that only a minority of the research on the cache-oblivious memory model compares the practical performance of newly proposed data structures with that of established data structures.
 Contrary to what theoretical analysis suggests, the practical results that are available so far fail to show the superior performance of cache-oblivious data structures.
@@ -263,7 +263,7 @@ determine what state to expand next. The set holds all states that have been
 generated so far and is used to prevent a single state from being expanded
 more than once.
 
-Although other behaviour is possible, our queue operates by a first-in,
+Although other behavior is possible, our queue operates by a first-in,
 first-out principle, meaning that all states that are reachable in $N$ steps
 from the initial state are expanded before any states that require more than
 $N$ steps.
@@ -341,7 +341,7 @@ data region, bypassing the C library's allocation functions and giving the
 implementer complete control over how data is arranged in memory.
 
 In principle, this also means the operating system has control over when and
-which data pages are transfered from main memory to disk storage and back.
+which data pages are transferred from main memory to disk storage and back.
 However, our experiments (which were performed on a system without a swap file)
 were limited to using main memory only.
 
@@ -485,7 +485,6 @@ tree on the right.
 \label{fig-bender-set}
 \end{figure}
 
-
 The top-level density must be a number between $0$ and $1$; the optimal value
 depends on practical circumstances such as available memory and the relative
 cost of rebuilding the data structures.
@@ -585,8 +584,8 @@ for our experiments.
 There are several ways of measuring the time a process takes to execute.
 The simplest is counting the number of seconds elapsed since the start of the
 program (called \emph{wall clock time}).
-This has the disadvantage that concurrently executing processes affect the runtime
-of the process being measured, so on a busy system the reported runtime may vary
+This has the disadvantage that concurrently executing processes affect the timing
+of the process being measured, so on a busy system the reported time may vary
 over different executions.
 
 A different way to measure time is using the statistics the kernel collects
