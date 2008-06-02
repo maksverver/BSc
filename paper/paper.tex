@@ -5,6 +5,7 @@
 \usepackage{appendix}
 \usepackage{float}
 \usepackage{url}
+\usepackage{subfigure}
 
 \floatstyle{ruled}
 \newfloat{program}{thp}{lop}
@@ -251,7 +252,7 @@ while (!queue.empty()) {
     }
 }
 \end{verbatim}
-\caption{Pseudo-code for a simple state search algorithm.}
+\caption{Pseudo-code for a simple state search algorithm}
 \label{prog-search}
 \end{program}
 
@@ -376,7 +377,7 @@ is stored in consecutive memory.
 \begin{figure}[t]
 \centering
 \includegraphics[width=83mm]{hash-table}
-\caption{A depiction of a separate-chaining hash table}
+\caption{Depiction of a separate-chaining hash table}
 \label{fig-hash-table}
 \end{figure}
 
@@ -410,7 +411,7 @@ accessing several smaller blocks.
 \begin{figure}[b]
 \centering
 \includegraphics[width=83mm]{b-tree}
-\caption{A depiction of a B-tree}
+\caption{Depiction of a B-tree}
 \label{fig-b-tree}
 \end{figure}
 
@@ -481,7 +482,7 @@ tree on the right.
 \begin{figure}
 \centering
 \includegraphics[width=83mm]{bender-set}
-\caption{A depiction of a Bender set}
+\caption{Ddepiction of a Bender set}
 \label{fig-bender-set}
 \end{figure}
 
@@ -732,10 +733,8 @@ a good balance between execution time and memory requirements.
 
 Now that we have established the parameters to use for the other test cases,
 we can run final experiments on all three test cases.
-The execution times for these cases are presented in figures
-\ref{fig-eratosthenes_wctime}--\ref{fig-peterson_wctime}
-and the corresponding memory usage is presented in
-figures \ref{fig-eratosthenes_vss}--\ref{fig-peterson_vss}.
+The execution times for these cases are presented in Figure \ref{fig-wctime}
+and the corresponding memory usage is presented in Figure \ref{fig-vss}.
 
 \section{Discussion}
 The three test cases paint a very similar picture: in all cases, the hash table
@@ -869,102 +868,64 @@ algorithms should, preferably, have demonstrable practical merit as well.
 \bibliographystyle{unsrt}
 \bibliography{paper}
 
-%\begin{figure}
-%\centering
-%\includegraphics[width=83mm]{fig-queuesize}
-%\caption{Queue size}
-%\label{fig-quesize}
-%\end{figure}
-
-%\begin{figure}
-%\centering
-%\includegraphics[width=83mm]{fig-transitions}
-%\caption{Transitions}
-%\label{fig-transitions}
-%\end{figure}
-
-\begin{figure}[p]
+\begin{figure*}[p]
 \centering
-\includegraphics[width=83mm]{fig-eratosthenes-hash_wctime}
-\caption{Execution time of hash table on Eratosthenes}
-\label{fig-eratosthenes-hash_wctime}
-\end{figure}
+\subfigure[B-tree]{
+    \label{fig-eratosthenes-hash_wctime}
+    \includegraphics[width=56mm]{fig-eratosthenes-hash_wctime}}
+\subfigure[Hash table]{
+    \label{fig-eratosthenes-btree_wctime}
+    \includegraphics[width=56mm]{fig-eratosthenes-btree_wctime}}
+\subfigure[Bender set]{
+    \label{fig-eratosthenes-bender_wctime}
+    \includegraphics[width=56mm]{fig-eratosthenes-bender_wctime}}
+\caption{Execution times per data structure on Eratosthenes}
+\label{fig-eratosthenes-wctime}
+\end{figure*}
 
-\begin{figure}[p]
+\begin{figure*}[p]
 \centering
-\includegraphics[width=83mm]{fig-eratosthenes-btree_wctime}
-\caption{Execution time of B-tree on Eratosthenes}
-\label{fig-eratosthenes-btree_wctime}
-\end{figure}
+\subfigure[B-tree]{
+    \label{fig-eratosthenes-hash_vss}
+    \includegraphics[width=56mm]{fig-eratosthenes-hash_vss}}
+\subfigure[Hash table]{
+    \label{fig-eratosthenes-btree_vss}
+    \includegraphics[width=56mm]{fig-eratosthenes-btree_vss}}
+\subfigure[Bender set]{
+    \label{fig-eratosthenes-bender_vss}
+    \includegraphics[width=56mm]{fig-eratosthenes-bender_vss}}
+\caption{Memory usage per data structure on Eratosthenes}
+\label{fig-eratosthenes-vss}
+\end{figure*}
 
-\begin{figure}[p]
+\begin{figure*}[p]
 \centering
-\includegraphics[width=83mm]{fig-eratosthenes-bender_wctime}
-\caption{Execution time of Bender set on Eratosthenes}
-\label{fig-eratosthenes-bender_wctime}
-\end{figure}
+\subfigure[Eratosthenes]{
+    \label{fig-eratosthenes_wctime}
+    \includegraphics[width=56mm]{fig-eratosthenes_wctime}}
+\subfigure[Leader2]{
+    \label{fig-leader2_wctime}
+    \includegraphics[width=56mm]{fig-leader2_wctime}}
+\subfigure[Peterson\_N]{
+    \label{fig-peterson_wctime}
+    \includegraphics[width=56mm]{fig-peterson_wctime}}
+\caption{Execution times per test case}
+\label{fig-wctime}
+\end{figure*}
 
-\begin{figure}[p]
+\begin{figure*}[p]
 \centering
-\includegraphics[width=83mm]{fig-eratosthenes-hash_vss}
-\caption{Memory usage of hash table on Eratosthenes}
-\label{fig-eratosthenes-hash_vss}
-\end{figure}
-
-\begin{figure}[p]
-\centering
-\includegraphics[width=83mm]{fig-eratosthenes-btree_vss}
-\caption{Memory usage of B-tree on Eratosthenes}
-\label{fig-eratosthenes-btree_vss}
-\end{figure}
-
-\begin{figure}[p]
-\centering
-\includegraphics[width=83mm]{fig-eratosthenes-bender_vss}
-\caption{Memory usage of Bender set on Eratosthenes}
-\label{fig-eratosthenes-bender_vss}
-\end{figure}
-
-\begin{figure}[p]
-\centering
-\includegraphics[width=83mm]{fig-eratosthenes_wctime}
-\caption{Execution time on Eratosthenes}
-\label{fig-eratosthenes_wctime}
-\end{figure}
-
-\begin{figure}[p]
-\centering
-\includegraphics[width=83mm]{fig-leader2_wctime}
-\caption{Execution time on Leader2}
-\label{fig-leader2_wctime}
-\end{figure}
-
-\begin{figure}[p]
-\centering
-\includegraphics[width=83mm]{fig-peterson_wctime}
-\caption{Execution time on Peterson\_N}
-\label{fig-peterson_wctime}
-\end{figure}
-
-\begin{figure}[p]
-\centering
-\includegraphics[width=83mm]{fig-eratosthenes_vss}
-\caption{Memory usage on Eratosthenes}
-\label{fig-eratosthenes_vss}
-\end{figure}
-
-\begin{figure}[p]
-\centering
-\includegraphics[width=83mm]{fig-leader2_vss}
-\caption{Memory usage on Leader2}
-\label{fig-leader2_vss}
-\end{figure}
-
-\begin{figure}[p]
-\centering
-\includegraphics[width=83mm]{fig-peterson_vss}
-\caption{Memory usage on Peterson\_N}
-\label{fig-peterson_vss}
-\end{figure}
+\subfigure[Eratosthenes]{
+    \label{fig-eratosthenes_vss}
+    \includegraphics[width=56mm]{fig-eratosthenes_vss}}
+\subfigure[Leader2]{
+    \label{fig-leader2_vss}
+    \includegraphics[width=56mm]{fig-leader2_vss}}
+\subfigure[Peterson\_N]{
+    \label{fig-peterson_vss}
+    \includegraphics[width=56mm]{fig-peterson_vss}}
+\caption{Memory usage per test case}
+\label{fig-vss}
+\end{figure*}
 
 \end{document}
