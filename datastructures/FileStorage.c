@@ -85,7 +85,9 @@ void *FS_reserve(FileStorage *fs, void *data, size_t size)
     /* Remap memory */
     if (HAVE_MREMAP && data != NULL)
     {
+#if HAVE_MREMAP
         data = mremap(data, old_size, new_size, MREMAP_MAYMOVE);
+#endif
         /* FIXME: If this fails, does the old mapping still exist? */
     }
     else
@@ -93,7 +95,7 @@ void *FS_reserve(FileStorage *fs, void *data, size_t size)
         if (data != NULL)
             munmap(data, old_size);
         data = mmap( NULL, new_size, PROT_READ|PROT_WRITE,
-	             fs->fd == -1 ? (MAP_PRIVATE|MAP_ANONYMOUS) : MAP_SHARED,
+                     fs->fd == -1 ? (MAP_PRIVATE|MAP_ANON) : MAP_SHARED,
                      fs->fd, (off_t)0 );
         /* FIXME: if this fails, the old mapping is destroyed! */
     }
