@@ -131,12 +131,12 @@ practical algorithms is limited.
 
 \subsection{Cache-Oblivious Memory Model}
 A different approach to generalizing the external memory model was taken by Prokop \cite{prokop1999coa} who proposed the cache-oblivious model.
-In this model, there is an infinitely large external memory and an internal memory of size M which operates as a cache for the external memory.
-Data is transferred between the two in aligned data blocks of size B.
+In this model, there is an infinitely large external memory and an internal memory of size $M$ which operates as a cache for the external memory.
+Data is transferred between the two in aligned data blocks of size $B$.
 In contrast with the hierarchical memory model, the application does not have explicit control over the transferring of blocks between the two memories.
 Instead, it is assumed that an optimal cache manager exists which minimizes the number of block transfers over the execution the program.
-Additionally (and in contrast with the external memory model) the values of parameters like M and B are not known to the application, so they cannot be used explicitly when defining algorithms and data structures.
-Of course, analysis in terms of memory transfers does involve these parameters, so the number of memory transfers performed is still a function of M and B (and other parameters relevant to the problem).
+Additionally (and in contrast with the external memory model) the values of parameters like $M$ and $B$ are not known to the application, so they cannot be used explicitly when defining algorithms and data structures.
+Of course, analysis in terms of memory transfers does involve these parameters, so the number of memory transfers performed is still a function of $M$ and $B$ (and other parameters relevant to the problem).
 
 Algorithms that perform optimally in this model are called ``cache-oblivious'' and they distinguish themselves from cache-aware algorithms in that they cannot rely on knowledge of the block size or other specific properties of the cache configuration. The key advantage of this class of algorithms is that, even though they are defined in a two-level memory model, they are implicitly tuned to all levels in the memory hierarchy at once. It has been conjectured that these algorithms may therefore perform better than algorithms that are tuned to a specific level in the hierarchy only.
 
@@ -322,7 +322,7 @@ undesirable to use existing libraries for a fair comparison, for two reasons. Fi
 In an attempt to reduce the bias caused by differences in functionality and
 quality between existing and newly developed libraries, all data structures
 used in the performance evaluation have been implemented from scratch.
-
+\clearpage
 \subsubsection{Set Operations}
 Dynamic set data structures may support various operations, such as adding and removing elements, testing if a value is an element of the set, finding elements nearby, succeeding or preceding a given value, counting elements in a range, et cetera. However, our state space search algorithm only needs two operations: insertion of new elements (in a set that is initially empty) and testing for the existence of elements. In fact, these two operations can be combined into a single operation. We call this operation \verb#insert(S,x)#. If an element $x$ does not exist in $S$, then \verb#insert(S,x)# inserts it and returns $0$. If $x$ is already an element of $S$, \verb#insert(S,x)# returns $1$ and no modifications are made. The inner loop of our state space algorithm can then be rewritten as follows:
 \begin{verbatim}
@@ -482,7 +482,7 @@ tree on the right.
 \begin{figure}
 \centering
 \includegraphics[width=83mm]{bender-set}
-\caption{Ddepiction of a Bender set}
+\caption{Depiction of a Bender set}
 \label{fig-bender-set}
 \end{figure}
 
