@@ -8,6 +8,7 @@ OBJECTS=Alloc.o Bender_Set.o Bender_Impl.o Btree_Set.o Dummy_Set.o \
 	comparison.o hashing.o
 # removed: BDB_Set.o
 
+include ../Makefile.common
 
 all: test-set test-deque datastructures.a
 

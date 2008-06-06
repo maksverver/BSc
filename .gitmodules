@@ -1,0 +1,3 @@
+[submodule "nips_vm"]
+	path = nips_vm
+	url = http://www.foldr.org/~michaelw/projects/nips-vm.git
