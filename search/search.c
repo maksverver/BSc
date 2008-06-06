@@ -1,8 +1,16 @@
 #include "search.h"
 #include <assert.h>
 #include <stdio.h>
-#include <nips_vm/nipsvm.h>
 #include <sys/time.h>
+#include <unistd.h>
+#if defined(__APPLE__)
+#include <mach/task.h>
+#include <mach/mach_init.h>
+#include <mach/shared_memory_server.h>
+#elif defined(__linux__)
+#include <asm/param.h>                  /* HZ */
+#endif
+#include <nips_vm/nipsvm.h>
 
 const int PAGESIZE = 4096;
 
@@ -112,29 +120,59 @@ void report(FILE *fp, SearchContext *sc)
 {
     FILE *stat;
     int res;
-    unsigned long utime, stime, vsize;
+    unsigned long vsize;
+    double utime, stime;
     long rss;
-
+#if defined(__linux__)
+    unsigned long lutime, lstime;
     stat = fopen("/proc/self/stat", "rt");
     assert(stat != NULL);
     res = fscanf( stat, "%*d %*s %*c %*d %*d %*d %*d %*d %*u "
                         "%*lu %*lu %*lu %*lu "
                         "%lu %lu %*ld %*ld %*ld %*ld %*ld %*ld %*llu "
                         "%lu %ld",
-                  &utime, &stime, &vsize, &rss );
+                  &lutime, &lstime, &vsize, &rss );
+    rss *= PAGESIZE;
+    utime = lutime / (double)HZ;
+    stime = lstime / (double)HZ;
     assert(res == 4);
     fclose(stat);
+#elif defined(__APPLE__)
+    task_t task = MACH_PORT_NULL;
+    if (task_for_pid (current_task(), getpid(), &task) != KERN_SUCCESS) {
+        perror ("task_for_pid");
+        return;
+    }
+    struct task_basic_info task_basic_info;
+    mach_msg_type_number_t task_basic_info_count = TASK_BASIC_INFO_COUNT;
+    task_info(task, TASK_BASIC_INFO, (task_info_t)&task_basic_info,
+              &task_basic_info_count);
+    rss = task_basic_info.resident_size / 1024UL;
+    unsigned long int vmsize_bytes = task_basic_info.virtual_size;
+    if (vmsize_bytes > SHARED_TEXT_REGION_SIZE + SHARED_DATA_REGION_SIZE)
+        vmsize_bytes -= SHARED_TEXT_REGION_SIZE + SHARED_DATA_REGION_SIZE;
+    vsize = vmsize_bytes / 1024UL;
 
+    struct rusage rusage;
+    if (getrusage (RUSAGE_SELF, &rusage) == -1) {
+        perror ("getrusage");
+        return;
+    }
+
+    utime = rusage.ru_utime.tv_sec * 1000 + rusage.ru_utime.tv_usec / 1000.0;
+    stime = rusage.ru_stime.tv_sec * 1000 + rusage.ru_stime.tv_usec / 1000.0;
+#else
+#error "Reporting not implemented.  Try getrusage()."
+#endif
     fprintf( fp, "%9ld %9ld %9ld %7.3f %7.3f %7.3f %11ld %11lu\n",
              sc->expanded,
              (long)sc->queue->size(sc->queue),
              sc->transitions,
              now() - sc->time_start,
-             (double)utime/100,
-             (double)stime/100,
-             PAGESIZE*rss,
+             utime,
+             stime,
+             rss,
              vsize );
-
 }
 
 /* Makes a copy of the given state with specified size in dynamic memory
