@@ -50,7 +50,7 @@ void *Allocator_mmap(Alloc *a, void *old_data, size_t size)
     if (old_data == NULL)
     {
         assert(size > 0);
-        if (!FS_create(&a->fs, "/dev/zero"))
+        if (!FS_create(&a->fs, NULL))
             return NULL;
 
         return FS_resize(&a->fs, NULL, size);

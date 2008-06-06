@@ -17,10 +17,18 @@ bool FS_create(FileStorage *fs, const char *path)
 
     assert(ALLOC_CHUNK_SIZE > 0);
 
-    /* Open the file */
-    fd = open(path, O_CREAT | O_RDWR, 0666);
-    if (fd < 0)
-        return false;
+    if (path == NULL)
+    {
+        /* Map anonymously */
+	fd = -1;
+    }
+    else
+    {
+        /* Open the file */
+        fd = open(path, O_CREAT | O_RDWR, 0666);
+        if (fd < 0)
+            return false;
+    }
 
     /* Initialize FileStorage structure */
     fs->size       = 0;
@@ -34,7 +42,8 @@ void FS_destroy(FileStorage *fs, void *data)
 {
     if (data != NULL)
         munmap(data, fs->size);
-    close(fs->fd);
+    if (fs->fd != -1)
+        close(fs->fd);
 }
 
 void *FS_resize(FileStorage *fs, void *data, size_t size)
@@ -66,13 +75,12 @@ void *FS_reserve(FileStorage *fs, void *data, size_t size)
 
     /* Change file size */
     assert(sizeof(off_t) >= sizeof(size_t));
-    res = ftruncate(fs->fd, (off_t)new_size);
-    /* truncation may fail for special files like /dev/zero; in that case,
-       this not an error. (If it is, then mmap/mremap will fail later on) */
-    /*
-    if (res != 0)
-        return NULL;
-    */
+    if (fs->fd != -1)
+    {
+        res = ftruncate(fs->fd, (off_t)new_size);
+        if (res != 0)
+            return NULL;
+    }
 
     /* Remap memory */
     if (HAVE_MREMAP && data != NULL)
@@ -84,7 +92,8 @@ void *FS_reserve(FileStorage *fs, void *data, size_t size)
     {
         if (data != NULL)
             munmap(data, old_size);
-        data = mmap( NULL, new_size, PROT_READ|PROT_WRITE, MAP_PRIVATE,
+        data = mmap( NULL, new_size, PROT_READ|PROT_WRITE,
+	             fs->fd == -1 ? (MAP_PRIVATE|MAP_ANONYMOUS) : MAP_SHARED,
                      fs->fd, (off_t)0 );
         /* FIXME: if this fails, the old mapping is destroyed! */
     }

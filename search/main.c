@@ -136,7 +136,7 @@ int main(int argc, char *argv[])
     }
 
     /* Create deque data structure */
-    params.queue = File_Deque_create("/dev/zero");
+    params.queue = File_Deque_create(NULL);
     if (params.queue == NULL)
     {
         perror("Could not create deque");
